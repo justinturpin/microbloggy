@@ -1,0 +1,18 @@
+[package]
+name = "microbloggy"
+version = "0.1.0"
+authors = ["Justin Turpin <ionstream@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tide = "0.15.0"
+async-std = { version = "1.8.0", features = ["attributes"] }
+tera = "1.5.0"
+tide-tera = "0.2"
+tide-sqlx = "0.3"
+sqlx = { version = "0.4.1", features = ["sqlite", "postgres"] }
+
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
