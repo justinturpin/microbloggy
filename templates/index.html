@@ -7,7 +7,7 @@
 
 <div id="createpost-container">
     <form action="/post/create" method="POST">
-        <input type="hidden" name="csrf-token" value="12356">
+        <input type="hidden" name="csrf-token" value="{{ csrf_token }}">
         <textarea name="content" placeholder="What's happening?"></textarea>
         <input id="createpost" type="submit" value="Post">
     </form>

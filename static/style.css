@@ -10,7 +10,12 @@ blockquote, pre, section, a, code {
 
 h1, h2, h3, h4, h5, h6 {
     font-weight: bold;
+    margin-top: 0.2em;
     margin-bottom: 0.2em;
+}
+
+p {
+    margin-bottom: 12px;
 }
 
 li {
@@ -69,6 +74,7 @@ textarea {
     padding: 8px;
     border: 1px solid gray;
     border-radius: 4px;
+    margin-bottom: 8px;
 }
 
 #login-button {

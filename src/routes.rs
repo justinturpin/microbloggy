@@ -35,6 +35,7 @@ pub struct Post {
 pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
     let tera = &req.state().tera;
     let session = req.session();
+    let csrf_token = session.get::<String>("csrf_token").unwrap();
 
     let mut db_conn = (&req.state()).sqlite_pool.acquire().await?;
     let mut context = tera::Context::new();
@@ -61,27 +62,33 @@ pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
 
     context.insert("posts", &posts);
     context.insert("logged_in", &session.get::<bool>("logged_in").unwrap_or(false));
+    context.insert("csrf_token", &csrf_token);
 
     tera.render_response("index.html", &context)
 }
 
 pub async fn user_login(req: Request<State>) -> tide::Result<tide::Response> {
-    let mut tera = &req.state().tera;
+    let tera = &req.state().tera;
+    let session = req.session();
+    let csrf_token = session.get::<String>("csrf_token").unwrap();
 
-    tera.render_response("login.html", &tera::Context::new())
+    let mut context = tera::Context::new();
+    context.insert("csrf_token", &csrf_token);
+
+    tera.render_response("login.html", &context)
 }
 
 pub async fn user_login_post(mut req: Request<State>) -> tide::Result<tide::Response> {
     let login_form: LoginFormInput = req.body_form().await?;
-    let config = &req.state().config;
+    let csrf_token = req.session().get::<String>("csrf_token").unwrap();
+    let config = &req.state().config.clone();
 
     // TODO: use hashing instead of plaintext comparisons
     if login_form.username == config.admin_username &&
-        login_form.password == config.admin_password {
+        login_form.password == config.admin_password &&
+        login_form.csrf_token == csrf_token {
 
-        let session = req.session_mut();
-
-        session.insert("logged_in", true).unwrap();
+        req.session_mut().insert("logged_in", true).unwrap();
 
         // Login correct, set session
         Ok(Redirect::new("/").into())
@@ -92,6 +99,7 @@ pub async fn user_login_post(mut req: Request<State>) -> tide::Result<tide::Resp
 
 pub async fn post_create(mut req: Request<State>) -> tide::Result<tide::Response> {
     let session = req.session();
+    let csrf_token = req.session().get::<String>("csrf_token").unwrap();
 
     if !session.get::<bool>("logged_in").unwrap() {
         Ok(Redirect::new("/").into())
@@ -99,17 +107,23 @@ pub async fn post_create(mut req: Request<State>) -> tide::Result<tide::Response
         let mut db_conn = (&req.state()).sqlite_pool.acquire().await?;
 
         let form_input: PostFormInput = req.body_form().await?;
-        let now = Utc::now().to_rfc3339();
 
-        sqlx::query!(
-            "INSERT INTO posts (user_id, content, posted_timestamp) VALUES (?1, ?2, ?3)",
-            1,
-            form_input.content,
-            now
-        ).execute(&mut db_conn).await?;
+        // Validate CSRF token
+        if form_input.csrf_token != csrf_token {
+            Ok(Redirect::new("/").into())
+        } else {
+            let now = Utc::now().to_rfc3339();
 
-        let response: Response = Redirect::new("/").into();
+            sqlx::query!(
+                "INSERT INTO posts (user_id, content, posted_timestamp) VALUES (?1, ?2, ?3)",
+                1,
+                form_input.content,
+                now
+            ).execute(&mut db_conn).await?;
 
-        Ok(response)
+            let response: Response = Redirect::new("/").into();
+
+            Ok(response)
+        }
     }
 }

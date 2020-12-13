@@ -1,3 +1,4 @@
+use rand::Rng;
 use async_std::task::{spawn, sleep};
 use std::time::Duration;
 
@@ -77,6 +78,17 @@ async fn main() -> tide::Result<()> {
         tide::sessions::MemoryStore::new(),
         config.session_secret.as_bytes()
     ));
+
+    app.with(tide::utils::Before(|mut request: Request<State>| async move {
+        let session = request.session_mut();
+
+        if session.get::<String>("csrf_token").is_none() {
+            // TODO: use CSPRNG
+            session.insert("csrf_token", format!("{}", rand::thread_rng().gen::<u64>())).unwrap();
+        }
+
+        request
+    }));
 
     // Main Routes
     app.at("/").get(routes::index);
