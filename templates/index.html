@@ -1,10 +1,12 @@
 {% extends "base.html" %}
 
 {% block content %}
+<a href="/user/login">Log In</a>
+
 <h2>Latests Posts</h2>
 
 <form action="/post/create" method="POST">
-    <input type="hidden" name="csrf" value="12356">
+    <input type="hidden" name="csrf_token" value="12356">
     <textarea name="content" placeholder="What's happening?"></textarea>
     <input id="createpost" type="submit" value="Post">
 </form>

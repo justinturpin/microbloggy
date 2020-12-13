@@ -50,6 +50,14 @@ h2 {
     font-size: 1.5em;
 }
 
+a {
+    text-decoration: none;
+}
+
+a:hover {
+    color: rgb(139, 139, 255);
+}
+
 textarea {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     width: 100%;
@@ -66,6 +74,11 @@ textarea {
     font-weight: bold;
     font-size: 1.0em;
     border-radius: 16px;
+    cursor: pointer;
+}
+
+#createpost:hover {
+    background: rgb(136, 183, 255);
 }
 
 .post {
@@ -75,4 +88,11 @@ textarea {
 
 .post:hover {
     background: rgb(240, 240, 240);
+}
+
+#loginform input {
+    width: 100%;
+    padding: 8px;
+    font-size: 1em;
+    margin: 4px 0 6px 0;
 }
