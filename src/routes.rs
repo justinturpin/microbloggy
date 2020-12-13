@@ -25,11 +25,13 @@ pub struct PostFormInput {
 
 pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
     let tera = &req.state().tera;
+    let session = req.session();
+
     let mut db_conn = (&req.state()).sqlite_pool.acquire().await?;
     let mut context = tera::Context::new();
 
     let result = db_conn
-        .fetch_all("select user_id, content, posted_timestamp FROM posts ORDER BY posted_timestamp desc")
+        .fetch_all("select user_id, content, posted_timestamp FROM posts ORDER BY posted_timestamp desc LIMIT 50")
         .await?;
 
     let mut posts = std::vec::Vec::new();
@@ -43,6 +45,7 @@ pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
     }
 
     context.insert("posts", &posts);
+    context.insert("logged_in", &session.get::<bool>("logged_in").unwrap_or(false));
 
     tera.render_response("index.html", &context)
 }
@@ -60,6 +63,12 @@ pub async fn user_login_post(mut req: Request<State>) -> tide::Result<tide::Resp
     // TODO: use hashing instead of plaintext comparisons
     if login_form.username == config.admin_username &&
         login_form.password == config.admin_password {
+
+        let session = req.session_mut();
+
+        session.insert("logged_in", true).unwrap();
+
+        // Login correct, set session
         Ok(Redirect::new("/").into())
     } else {
         Ok(Redirect::new("/user/login").into())
@@ -67,19 +76,25 @@ pub async fn user_login_post(mut req: Request<State>) -> tide::Result<tide::Resp
 }
 
 pub async fn post_create(mut req: Request<State>) -> tide::Result<tide::Response> {
-    let mut db_conn = (&req.state()).sqlite_pool.acquire().await?;
+    let session = req.session();
 
-    let form_input: PostFormInput = req.body_form().await?;
-    let now = Utc::now().to_rfc3339();
+    if !session.get::<bool>("logged_in").unwrap() {
+        Ok(Redirect::new("/").into())
+    } else {
+        let mut db_conn = (&req.state()).sqlite_pool.acquire().await?;
 
-    sqlx::query!(
-        "INSERT INTO posts (user_id, content, posted_timestamp) VALUES (?1, ?2, ?3)",
-        1,
-        form_input.content,
-        now
-    ).execute(&mut db_conn).await?;
+        let form_input: PostFormInput = req.body_form().await?;
+        let now = Utc::now().to_rfc3339();
 
-    let response: Response = Redirect::new("/").into();
+        sqlx::query!(
+            "INSERT INTO posts (user_id, content, posted_timestamp) VALUES (?1, ?2, ?3)",
+            1,
+            form_input.content,
+            now
+        ).execute(&mut db_conn).await?;
 
-    Ok(response)
+        let response: Response = Redirect::new("/").into();
+
+        Ok(response)
+    }
 }

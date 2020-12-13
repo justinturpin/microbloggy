@@ -9,6 +9,7 @@ use tide_tera::prelude::*;
 use sqlx::prelude::*;
 
 use serde::Serialize;
+use serde_json::Value;
 
 mod config;
 mod routes;
@@ -27,6 +28,16 @@ pub struct Post {
     posted_timestamp: String
 }
 
+fn markdown_filter(value: &Value, _: &std::collections::HashMap<String, Value>) -> tera::Result<Value> {
+    let parser = pulldown_cmark::Parser::new(value.as_str().unwrap());
+
+    let mut output = String::new();
+
+    pulldown_cmark::html::push_html(&mut output, parser);
+
+    Ok(serde_json::value::to_value(output).unwrap())
+}
+
 #[async_std::main]
 async fn main() -> tide::Result<()> {
     // Load application config
@@ -36,6 +47,8 @@ async fn main() -> tide::Result<()> {
 
     // Tera stuff
     let mut tera = Tera::new("templates/**/*.html")?;
+
+    tera.register_filter("markdown", markdown_filter);
 
     tera.autoescape_on(vec!["html"]);
 

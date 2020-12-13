@@ -5,16 +5,18 @@
 
 <h2>Latests Posts</h2>
 
-<form action="/post/create" method="POST">
-    <input type="hidden" name="csrf_token" value="12356">
-    <textarea name="content" placeholder="What's happening?"></textarea>
-    <input id="createpost" type="submit" value="Post">
-</form>
+{% if logged_in %}
+    <form action="/post/create" method="POST">
+        <input type="hidden" name="csrf-token" value="12356">
+        <textarea name="content" placeholder="What's happening?"></textarea>
+        <input id="createpost" type="submit" value="Post">
+    </form>
+{% endif %}
 
 {% for post in posts %}
     <div class="post">
         <h2>{{ post.user_id }}</h2>
-        <p>{{ post.content }}</p>
+        <div class="post-content">{{ post.content | markdown | safe }}</div>
     </div>
 {% endfor %}
 
