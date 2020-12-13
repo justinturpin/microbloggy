@@ -40,6 +40,7 @@ pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
     let mut db_conn = (&req.state()).sqlite_pool.acquire().await?;
     let mut context = tera::Context::new();
 
+    // TODO: use sqlx:query! macro
     let result = db_conn
         .fetch_all(
             r#"SELECT users.username, users.name, users.rowid, posts.content, posts.posted_timestamp
@@ -48,6 +49,7 @@ pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
         )
         .await?;
 
+    // TODO: I think you can collect all of this into a Vec of some struct
     let mut posts = std::vec::Vec::new();
 
     for row in result {
@@ -67,6 +69,7 @@ pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
     tera.render_response("index.html", &context)
 }
 
+/// Show user login form
 pub async fn user_login(req: Request<State>) -> tide::Result<tide::Response> {
     let tera = &req.state().tera;
     let session = req.session();
@@ -78,6 +81,7 @@ pub async fn user_login(req: Request<State>) -> tide::Result<tide::Response> {
     tera.render_response("login.html", &context)
 }
 
+/// Handle user login attempt
 pub async fn user_login_post(mut req: Request<State>) -> tide::Result<tide::Response> {
     let login_form: LoginFormInput = req.body_form().await?;
     let csrf_token = req.session().get::<String>("csrf_token").unwrap();
@@ -93,14 +97,17 @@ pub async fn user_login_post(mut req: Request<State>) -> tide::Result<tide::Resp
         // Login correct, set session
         Ok(Redirect::new("/").into())
     } else {
+        // TODO: show a nice error on failure
         Ok(Redirect::new("/user/login").into())
     }
 }
 
+/// Handle post creation
 pub async fn post_create(mut req: Request<State>) -> tide::Result<tide::Response> {
     let session = req.session();
     let csrf_token = req.session().get::<String>("csrf_token").unwrap();
 
+    // Ensure logged in
     if !session.get::<bool>("logged_in").unwrap() {
         Ok(Redirect::new("/").into())
     } else {
