@@ -21,13 +21,6 @@ pub struct State {
     config: config::Config
 }
 
-#[derive(Serialize)]
-pub struct Post {
-    user_id: i64,
-    content: String,
-    posted_timestamp: String
-}
-
 fn markdown_filter(value: &Value, _: &std::collections::HashMap<String, Value>) -> tera::Result<Value> {
     let parser = pulldown_cmark::Parser::new(value.as_str().unwrap());
 

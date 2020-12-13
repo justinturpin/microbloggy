@@ -5,6 +5,7 @@ blockquote, pre, section, a, code {
     box-sizing: border-box;
     vertical-align: baseline;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    transition: background 0.1s;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -70,6 +71,29 @@ textarea {
     border-radius: 4px;
 }
 
+#login-button {
+    float: right;
+    font-size: 0.9rem;
+    background: rgb(98, 161, 255);
+    color: white;
+    padding: 8px 16px;
+    font-weight: bold;
+    border-radius: 16px;
+}
+
+#login-button:hover {
+    background: rgb(136, 183, 255);
+}
+
+#createpost-container {
+    padding: 16px;
+    border-bottom: 2px solid rgb(214, 214, 214);
+}
+
+#createpost-container:hover {
+    background: rgb(240, 240, 240);
+}
+
 #createpost {
     border: none;
     background: rgb(98, 161, 255);
@@ -87,7 +111,13 @@ textarea {
 
 .post {
     background: white;
-    padding: 8px;
+    padding: 8px 8px 8px 16px;
+    border-bottom: 1px solid rgb(221, 221, 221);
+}
+
+.post .post-username {
+    font-weight: normal;
+    color: gray
 }
 
 .post:hover {

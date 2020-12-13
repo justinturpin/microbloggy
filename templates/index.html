@@ -1,21 +1,31 @@
 {% extends "base.html" %}
 
 {% block content %}
-<a href="/user/login">Log In</a>
-
-<h2>Latests Posts</h2>
 
 {% if logged_in %}
+<h2>What's on your mind?</h2>
+
+<div id="createpost-container">
     <form action="/post/create" method="POST">
         <input type="hidden" name="csrf-token" value="12356">
         <textarea name="content" placeholder="What's happening?"></textarea>
         <input id="createpost" type="submit" value="Post">
     </form>
+</div>
 {% endif %}
+
+<h2>
+    Latests Posts
+    {% if not logged_in %}<a id="login-button" href="/user/login">Log In</a>{% endif %}
+</h2>
 
 {% for post in posts %}
     <div class="post">
-        <h2>{{ post.user_id }}</h2>
+        <h4>
+            <span class="post-name">{{ post.name }}</span>
+            <span class="post-username">@{{ post.username }}</span>
+        </h4>
+
         <div class="post-content">{{ post.content | markdown | safe }}</div>
     </div>
 {% endfor %}

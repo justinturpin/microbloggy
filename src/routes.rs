@@ -1,9 +1,9 @@
-use super::{State, Post};
+use super::State;
 
 use tide_tera::prelude::*;
 use sqlx::prelude::*;
 use tide::{Request, Response, Redirect};
-use serde::Deserialize;
+use serde::{Serialize, Deserialize};
 use chrono::prelude::*;
 
 #[derive(Deserialize)]
@@ -23,6 +23,15 @@ pub struct PostFormInput {
     csrf_token: String,
 }
 
+#[derive(Serialize)]
+pub struct Post {
+    username: String,
+    name: String,
+    user_id: i64,
+    content: String,
+    posted_timestamp: String
+}
+
 pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
     let tera = &req.state().tera;
     let session = req.session();
@@ -31,16 +40,22 @@ pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
     let mut context = tera::Context::new();
 
     let result = db_conn
-        .fetch_all("select user_id, content, posted_timestamp FROM posts ORDER BY posted_timestamp desc LIMIT 50")
+        .fetch_all(
+            r#"SELECT users.username, users.name, users.rowid, posts.content, posts.posted_timestamp
+            FROM users, posts WHERE users.rowid=posts.user_id
+            ORDER BY posted_timestamp desc LIMIT 50"#
+        )
         .await?;
 
     let mut posts = std::vec::Vec::new();
 
     for row in result {
         posts.push(Post{
-            user_id: row.get(0),
-            content: row.get(1),
-            posted_timestamp: row.get(2),
+            username: row.get(0),
+            name: row.get(1),
+            user_id: row.get(2),
+            content: row.get(3),
+            posted_timestamp: row.get(4),
         });
     }
 
