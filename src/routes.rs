@@ -102,8 +102,28 @@ pub async fn user_login_post(mut req: Request<State>) -> tide::Result<tide::Resp
     }
 }
 
+/// User profile
+pub async fn user_profile(mut req: Request<State>) -> tide::Result<Response> {
+    let state: &State = req.state();
+    let session = req.session();
+    let tera: &tera::Tera = &state.tera;
+    let config = &state.config;
+
+    if !session.get::<bool>("logged_in").unwrap_or(false) {
+        Ok(String::from("Forbidden").into())
+    } else {
+        let mut context = tera::Context::new();
+
+        context.insert("name", "Default User");
+        context.insert("username", &config.admin_username);
+        context.insert("bio", "Default Bio");
+
+        tera.render_response("profile.html", &context)
+    }
+}
+
 /// Handle post creation
-pub async fn post_create(mut req: Request<State>) -> tide::Result<tide::Response> {
+pub async fn post_create(mut req: Request<State>) -> tide::Result<Response> {
     let session = req.session();
     let csrf_token = req.session().get::<String>("csrf_token").unwrap();
 

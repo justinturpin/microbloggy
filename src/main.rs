@@ -22,6 +22,9 @@ pub struct State {
     config: config::Config
 }
 
+/// Tera Markdown Filter - Uses pulldown_cmark to parse Markdown
+/// text and render it as HTML. The output should be piped through
+/// "safe" to ensure Tera doesn't try to sanitize it.
 fn markdown_filter(value: &Value, _: &std::collections::HashMap<String, Value>) -> tera::Result<Value> {
     let parser = pulldown_cmark::Parser::new(value.as_str().unwrap());
 
@@ -39,11 +42,10 @@ async fn main() -> tide::Result<()> {
 
     tide::log::start();
 
-    // Tera stuff
+    // Tera template stuff
     let mut tera = Tera::new("templates/**/*.html")?;
 
     tera.register_filter("markdown", markdown_filter);
-
     tera.autoescape_on(vec!["html"]);
 
     // Database stuff
@@ -55,14 +57,31 @@ async fn main() -> tide::Result<()> {
 
     // Bootstrap the schema (TODO: use sqlx migration)
     connection.execute(
-        r#"CREATE TABLE IF NOT EXISTS users
-        (username TEXT NOT NULL, name TEXT NOT NULL, bio TEXT NOT NULL)"#
+        r#"CREATE TABLE IF NOT EXISTS users (
+            username TEXT NOT NULL,
+            name TEXT NOT NULL DEFAULT "Default User",
+            bio TEXT NOT NULL DEFAULT "Default Bio"
+        )"#
     ).await?;
 
     connection.execute(
-        r#"CREATE TABLE IF NOT EXISTS posts
-        (user_id INT NOT NULL, content TEXT NOT NULL, posted_timestamp TEXT NOT NULL)"#
+        r#"CREATE TABLE IF NOT EXISTS posts (
+            user_id INT NOT NULL,
+            content TEXT NOT NULL,
+            posted_timestamp TEXT NOT NULL,
+            short_url TEXT
+        )"#
     ).await?;
+
+    // Bootstrap user (only 1 user for now hardcoded as user id 1)
+    sqlx::query!(
+        r#"REPLACE INTO users (rowid, username)
+        VALUES (?1, ?2)"#,
+        1,
+        config.admin_username
+    )
+    .execute(&mut connection)
+    .await?;
 
     // State
     let state = State {
@@ -94,6 +113,7 @@ async fn main() -> tide::Result<()> {
     app.at("/").get(routes::index);
     app.at("/user/login").get(routes::user_login);
     app.at("/user/login").post(routes::user_login_post);
+    app.at("/user/profile").get(routes::user_profile);
     app.at("/post/create").post(routes::post_create);
 
     // Static Files (fonts, favicon, css)

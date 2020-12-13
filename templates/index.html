@@ -3,7 +3,11 @@
 {% block content %}
 
 {% if logged_in %}
-<h2>What's on your mind?</h2>
+<h2>
+    What's on your mind?
+
+    <a id="profile-button" href="/user/profile">Profile</a>
+</h2>
 
 <div id="createpost-container">
     <form action="/post/create" method="POST">

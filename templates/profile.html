@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+<a href="/">Back to Home</a>
+
+<h2>Your Profile</h2>
+
+<div id="profile-container">
+    <div>Username</div>
+    <div>{{ username }}</div>
+
+    <div>Name</div>
+    <dive>{{ name }}</div>
+
+    <form action="/user/profile" method="POST">
+        <input type="hidden" name="csrf-token" value="csrf_token">
+
+        <div>Bio</div>
+        <div>
+            <textarea value="bio">{{ bio }}</textarea>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
