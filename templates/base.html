@@ -3,9 +3,23 @@
 <html>
     <head>
         <title>Microbloggy Alpha</title>
+
+        <link rel="stylesheet" href="/static/style.css">
+
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <link rel="shortcut icon" href="/static/favicon.svg">
     </head>
 
     <body>
-        {% block content %}{% endblock %}
+        <div id="vertical-wrapper">
+            <div id="content-wrapper">
+                {% block content %}{% endblock %}
+            </div>
+
+            <footer id="footer">
+                Alpha, do not take seriously under any circumstances
+            </footer>
+        </div>
     </body>
 </html>

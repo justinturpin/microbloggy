@@ -1,6 +1,6 @@
 use sqlx::Connection;
 use tide::prelude::*;
-use tide::Request;
+use tide::{Request, Redirect, Response, StatusCode};
 use tera::Tera;
 use tide_tera::prelude::*;
 
@@ -35,9 +35,17 @@ struct Post {
     posted_timestamp: String
 }
 
+#[derive(Deserialize)]
+struct FormInput {
+    csrf: String,
+    content: String
+}
+
 #[async_std::main]
 async fn main() -> tide::Result<()> {
     // let config = Config::from_env();
+
+    tide::log::start();
 
     // Tera stuff
     let mut tera = Tera::new("templates/**/*.html")?;
@@ -77,7 +85,7 @@ async fn main() -> tide::Result<()> {
             .fetch_all("select user_id, content, posted_timestamp FROM posts ORDER BY posted_timestamp desc")
             .await?;
 
-        let mut posts = vec![];
+        let mut posts = std::vec::Vec::new();
 
         for row in result {
             posts.push(Post{
@@ -91,6 +99,26 @@ async fn main() -> tide::Result<()> {
 
         tera.render_response("index.html", &context)
     });
+
+    app.at("/post/create").post(|mut req: Request<State>| async move {
+        let mut db_conn = (&req.state()).sqlite_pool.acquire().await?;
+
+        let form_input: FormInput = req.body_form().await?;
+
+        sqlx::query!(
+            "INSERT INTO posts (user_id, content, posted_timestamp) VALUES (?1, ?2, ?3)",
+            1,
+            form_input.content,
+            "right friggn now"
+        ).execute(&mut db_conn).await?;
+
+        let response: Response = Redirect::new("/").into();
+
+        Ok(response)
+    });
+
+    // Static Files
+    app.at("/static").serve_dir("static")?;
 
     app.listen("127.0.0.1:8080").await?;
 
