@@ -45,7 +45,7 @@ pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
         .param("before_timestamp")
         .unwrap_or(now.as_str());
 
-    // TODO: use sqlx:query! macro
+    // Query for all posts, joined on users of that post
     let result = sqlx::query!(
             r#"SELECT users.username, users.name, users.rowid AS user_id, posts.content, posts.posted_timestamp
             FROM users, posts

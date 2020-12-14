@@ -3,7 +3,8 @@ pub struct Config {
     pub database_url: String,
     pub admin_username: String,
     pub admin_password: String,
-    pub session_secret: String
+    pub session_secret: String,
+    pub bind_host: String
 }
 
 impl Config {
@@ -21,6 +22,7 @@ impl Config {
             admin_username: std::env::var("ADMIN_USERNAME").unwrap(),
             admin_password: std::env::var("ADMIN_PASSWORD").unwrap(),
             session_secret: session_secret,
+            bind_host: std::env::var("BIND_HOST").unwrap_or("127.0.0.1:8080".to_string())
         }
     }
 }
