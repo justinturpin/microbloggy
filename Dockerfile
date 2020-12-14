@@ -24,7 +24,7 @@ ENV BIND_HOST=0.0.0.0:8080
 
 EXPOSE 8080
 
-RUN apt-get update &&
+RUN apt-get update && \
     apt-get install su-exec -y && \
     useradd -r -g microbloggy microbloggy
 
