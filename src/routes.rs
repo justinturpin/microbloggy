@@ -39,14 +39,21 @@ pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
 
     let mut db_conn = (&req.state()).sqlite_pool.acquire().await?;
     let mut context = tera::Context::new();
+    let now = Utc::now().to_rfc3339();
+
+    let before_timestamp = req
+        .param("before_timestamp")
+        .unwrap_or(now.as_str());
 
     // TODO: use sqlx:query! macro
-    let result = db_conn
-        .fetch_all(
-            r#"SELECT users.username, users.name, users.rowid, posts.content, posts.posted_timestamp
-            FROM users, posts WHERE users.rowid=posts.user_id
-            ORDER BY posted_timestamp desc LIMIT 50"#
+    let result = sqlx::query!(
+            r#"SELECT users.username, users.name, users.rowid AS user_id, posts.content, posts.posted_timestamp
+            FROM users, posts
+            WHERE users.rowid=posts.user_id AND posts.posted_timestamp <= ?
+            ORDER BY posted_timestamp desc LIMIT 50"#,
+            before_timestamp
         )
+        .fetch_all(&mut db_conn)
         .await?;
 
     // TODO: I think you can collect all of this into a Vec of some struct
@@ -54,11 +61,11 @@ pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
 
     for row in result {
         posts.push(Post{
-            username: row.get(0),
-            name: row.get(1),
-            user_id: row.get(2),
-            content: row.get(3),
-            posted_timestamp: row.get(4),
+            username: row.username,
+            name: row.name,
+            user_id: row.user_id.unwrap(),
+            content: row.content,
+            posted_timestamp: row.posted_timestamp,
         });
     }
 

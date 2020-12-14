@@ -15,3 +15,8 @@ CREATE TABLE IF NOT EXISTS posts (
 );
 
 CREATE UNIQUE INDEX posts_short_url ON posts(short_url);
+
+-- Prevent an extraordinarily rare case where multple posts happen at the same time,
+-- breaking pagination
+
+CREATE UNIQUE INDEX posts_posted_timestamp ON posts(posted_timestamp);

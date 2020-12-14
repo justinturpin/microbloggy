@@ -43,3 +43,4 @@ Features:
 - [ ] Make some colors customizable
 - [ ] Allow uploading and resizing photos
 - [ ] Support multiple users
+- [ ] Show multiple pages of posts
