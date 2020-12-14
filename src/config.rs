@@ -1,6 +1,6 @@
 #[derive(Clone)]
 pub struct Config {
-    pub database_path: String,
+    pub database_url: String,
     pub admin_username: String,
     pub admin_password: String,
     pub session_secret: String
@@ -17,7 +17,7 @@ impl Config {
         };
 
         Config {
-            database_path: std::env::var("DATABASE_PATH").unwrap(),
+            database_url: std::env::var("DATABASE_URL").unwrap(),
             admin_username: std::env::var("ADMIN_USERNAME").unwrap(),
             admin_password: std::env::var("ADMIN_PASSWORD").unwrap(),
             session_secret: session_secret,

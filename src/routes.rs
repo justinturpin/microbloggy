@@ -146,6 +146,7 @@ pub async fn post_create(mut req: Request<State>) -> tide::Result<Response> {
         } else {
             let now = Utc::now().to_rfc3339();
 
+            // TODO: hardcoded user id of 1 should be dynamic, probably
             sqlx::query!(
                 "INSERT INTO posts (user_id, content, posted_timestamp) VALUES (?1, ?2, ?3)",
                 1,

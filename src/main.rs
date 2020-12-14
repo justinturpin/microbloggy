@@ -74,32 +74,9 @@ fn register_routes(app: &mut tide::Server<State>) {
 }
 
 async fn bootstrap_database(config: &config::Config) -> tide::Result<SqlitePool> {
-    // Database stuff
-    let sqlite_options = SqliteConnectOptions::from_str(format!("sqlite:{}", config.database_path).as_str())?
-        .journal_mode(SqliteJournalMode::Wal)
-        .create_if_missing(true);
-
-    let sqlite_pool = SqlitePool::connect_with(sqlite_options).await?;
+    let sqlite_pool = SqlitePool::connect(config.database_url.as_str()).await?;
 
     let mut connection: PoolConnection<Sqlite> = sqlite_pool.acquire().await?;
-
-    // Bootstrap the schema (TODO: use sqlx migration)
-    connection.execute(
-        r#"CREATE TABLE IF NOT EXISTS users (
-            username TEXT NOT NULL,
-            name TEXT NOT NULL DEFAULT "Default User",
-            bio TEXT NOT NULL DEFAULT "Default Bio"
-        )"#
-    ).await?;
-
-    connection.execute(
-        r#"CREATE TABLE IF NOT EXISTS posts (
-            user_id INT NOT NULL,
-            content TEXT NOT NULL,
-            posted_timestamp TEXT NOT NULL,
-            short_url TEXT
-        )"#
-    ).await?;
 
     // Bootstrap user (only 1 user for now hardcoded as user id 1)
     sqlx::query!(

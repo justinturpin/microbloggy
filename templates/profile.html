@@ -5,21 +5,26 @@
 
 <h2>Your Profile</h2>
 
-<div id="profile-container">
-    <div>Username</div>
-    <div>{{ username }}</div>
+<form action="/user/profile" method="POST">
+    <input type="hidden" name="csrf-token" value="csrf_token">
 
-    <div>Name</div>
-    <dive>{{ name }}</div>
+    <div id="profile-container">
+        <div>Username</div>
+        <div>{{ username }}</div>
 
-    <form action="/user/profile" method="POST">
-        <input type="hidden" name="csrf-token" value="csrf_token">
+        <div>Name</div>
+        <div>{{ name }}</div>
 
         <div>Bio</div>
         <div>
             <textarea value="bio">{{ bio }}</textarea>
         </div>
-    </form>
-</div>
+
+        <div>&nbsp;</div>
+        <div>
+            <input id="update-profile-button" type="submit" value="Update Profile">
+        </div>
+    </div>
+</form>
 
 {% endblock %}

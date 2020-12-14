@@ -23,7 +23,7 @@ async fn bootstrap_test() -> std::io::Result<()> {
     let config = Config {
         admin_username: "testuser".to_string(),
         admin_password: "testpassword".to_string(),
-        database_path: "testdb.sqlite".to_string(),
+        database_url: std::env::var("DATABASE_URL").unwrap().to_string(),
         session_secret: "testsessionsecrettestsessionsecrettestsessionsecret".to_string()
     };
 
