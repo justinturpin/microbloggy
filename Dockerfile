@@ -19,10 +19,13 @@ WORKDIR /opt
 COPY --from=0 /opt/target/release/microbloggy /opt/microbloggy
 COPY --from=0 /opt/migrations /opt/migrations
 COPY --from=0 /opt/static /opt/static
-COPY --from=0 /usr/local/cargo/bin/sqlx /usr/local/bin/sqlx
 
 ENV BIND_HOST=0.0.0.0:8080
 
 EXPOSE 8080
+
+RUN apt-get update &&
+    apt-get install su-exec -y && \
+    useradd -r -g microbloggy microbloggy
 
 CMD sqlx database create && sqlx migrate run && /opt/microbloggy

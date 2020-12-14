@@ -74,14 +74,22 @@ fn register_routes(app: &mut tide::Server<State>) {
 }
 
 async fn bootstrap_database(config: &config::Config) -> tide::Result<SqlitePool> {
-    let sqlite_pool = SqlitePool::connect(config.database_url.as_str()).await?;
+    let options = SqliteConnectOptions::from_str(config.database_url.as_str())?
+        .journal_mode(SqliteJournalMode::Wal)
+        .create_if_missing(true);
+
+    let sqlite_pool = SqlitePool::connect_with(options).await?;
+
+    // Run migrations, bringing the database schema up-to-date
+    sqlx::migrate!("./migrations")
+        .run(&sqlite_pool)
+        .await?;
 
     let mut connection: PoolConnection<Sqlite> = sqlite_pool.acquire().await?;
 
     // Bootstrap user (only 1 user for now hardcoded as user id 1)
     sqlx::query!(
-            r#"REPLACE INTO users (rowid, username)
-            VALUES (?1, ?2)"#,
+            "REPLACE INTO users (rowid, username) VALUES (?1, ?2)",
             1,
             config.admin_username
         )
