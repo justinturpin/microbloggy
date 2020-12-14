@@ -8,12 +8,17 @@ use tera::Tera;
 use tide_tera::prelude::*;
 
 use sqlx::prelude::*;
+use sqlx::{Sqlite, SqlitePool};
+use sqlx::pool::PoolConnection;
+use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode};
 
 use serde::Serialize;
 use serde_json::Value;
+use std::str::FromStr;
 
 mod config;
 mod routes;
+mod tests;
 
 #[derive(Clone)]
 pub struct State {
@@ -35,25 +40,48 @@ fn markdown_filter(value: &Value, _: &std::collections::HashMap<String, Value>) 
     Ok(serde_json::value::to_value(output).unwrap())
 }
 
-#[async_std::main]
-async fn main() -> tide::Result<()> {
-    // Load application config
-    let config = config::Config::from_env();
+fn register_middleware(app: &mut tide::Server<State>, config: &config::Config) {
+    app.with(tide::sessions::SessionMiddleware::new(
+        tide::sessions::MemoryStore::new(),
+        config.session_secret.as_bytes()
+    ));
 
-    tide::log::start();
+    app.with(tide::utils::Before(|mut request: Request<State>| async move {
+        let session = request.session_mut();
 
-    // Tera template stuff
-    let mut tera = Tera::new("templates/**/*.html")?;
+        if session.get::<String>("csrf_token").is_none() {
+            // Use system-provided CSPRNG source. This will block if there's
+            // not enough randomness, which is fine.
+            let mut rand = rand::rngs::OsRng;
 
-    tera.register_filter("markdown", markdown_filter);
-    tera.autoescape_on(vec!["html"]);
+            session.insert("csrf_token", format!("{}", rand.gen::<u64>())).unwrap();
+        }
 
+        request
+    }));
+}
+
+fn register_routes(app: &mut tide::Server<State>) {
+    // Main Routes
+    app.at("/").get(routes::index);
+    app.at("/user/login").get(routes::user_login);
+    app.at("/user/login").post(routes::user_login_post);
+    app.at("/user/profile").get(routes::user_profile);
+    app.at("/post/create").post(routes::post_create);
+
+    // Static Files (fonts, favicon, css)
+    app.at("/static").serve_dir("static").unwrap();
+}
+
+async fn bootstrap_database(config: &config::Config) -> tide::Result<SqlitePool> {
     // Database stuff
-    let sqlite_pool = sqlx::SqlitePool::connect(
-        format!("sqlite:{}", config.database_path).as_str()
-    ).await?;
+    let sqlite_options = SqliteConnectOptions::from_str(format!("sqlite:{}", config.database_path).as_str())?
+        .journal_mode(SqliteJournalMode::Wal)
+        .create_if_missing(true);
 
-    let mut connection: sqlx::pool::PoolConnection<sqlx::Sqlite> = sqlite_pool.acquire().await?;
+    let sqlite_pool = SqlitePool::connect_with(sqlite_options).await?;
+
+    let mut connection: PoolConnection<Sqlite> = sqlite_pool.acquire().await?;
 
     // Bootstrap the schema (TODO: use sqlx migration)
     connection.execute(
@@ -75,13 +103,32 @@ async fn main() -> tide::Result<()> {
 
     // Bootstrap user (only 1 user for now hardcoded as user id 1)
     sqlx::query!(
-        r#"REPLACE INTO users (rowid, username)
-        VALUES (?1, ?2)"#,
-        1,
-        config.admin_username
-    )
-    .execute(&mut connection)
-    .await?;
+            r#"REPLACE INTO users (rowid, username)
+            VALUES (?1, ?2)"#,
+            1,
+            config.admin_username
+        )
+        .execute(&mut connection)
+        .await?;
+
+    Ok(sqlite_pool)
+}
+
+#[async_std::main]
+async fn main() -> tide::Result<()> {
+    // Load application config
+    let config = config::Config::from_env();
+
+    tide::log::start();
+
+    // Tera template stuff
+    let mut tera = Tera::new("templates/**/*.html")?;
+
+    tera.register_filter("markdown", markdown_filter);
+    tera.autoescape_on(vec!["html"]);
+
+    // Bootstrap Database
+    let sqlite_pool = bootstrap_database(&config).await?;
 
     // State
     let state = State {
@@ -93,42 +140,8 @@ async fn main() -> tide::Result<()> {
     // Create Tide app and Middleware
     let mut app = tide::with_state(state);
 
-    app.with(tide::sessions::SessionMiddleware::new(
-        tide::sessions::MemoryStore::new(),
-        config.session_secret.as_bytes()
-    ));
-
-    app.with(tide::utils::Before(|mut request: Request<State>| async move {
-        let session = request.session_mut();
-
-        if session.get::<String>("csrf_token").is_none() {
-            // TODO: use CSPRNG
-            session.insert("csrf_token", format!("{}", rand::thread_rng().gen::<u64>())).unwrap();
-        }
-
-        request
-    }));
-
-    // Main Routes
-    app.at("/").get(routes::index);
-    app.at("/user/login").get(routes::user_login);
-    app.at("/user/login").post(routes::user_login_post);
-    app.at("/user/profile").get(routes::user_profile);
-    app.at("/post/create").post(routes::post_create);
-
-    // Static Files (fonts, favicon, css)
-    app.at("/static").serve_dir("static")?;
-
-    // Spawn background process
-    spawn(async{
-        loop {
-            println!("Started background job");
-
-            // TODO: use a clone of db connection
-
-            sleep(Duration::from_secs(60)).await;
-        }
-     });
+    register_middleware(&mut app, &config);
+    register_routes(&mut app);
 
     app.listen("127.0.0.1:8080").await?;
 

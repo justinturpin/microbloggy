@@ -110,7 +110,12 @@ pub async fn user_profile(mut req: Request<State>) -> tide::Result<Response> {
     let config = &state.config;
 
     if !session.get::<bool>("logged_in").unwrap_or(false) {
-        Ok(String::from("Forbidden").into())
+        Ok(
+            tide::Response::builder(400)
+                .body("Unauthorized")
+                .content_type(tide::http::mime::HTML)
+                .build()
+        )
     } else {
         let mut context = tera::Context::new();
 
