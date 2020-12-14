@@ -104,7 +104,8 @@ async fn main() -> tide::Result<()> {
     // Load application config
     let config = config::Config::from_env();
 
-    tide::log::start();
+    // Test performance with disabled logging
+    // tide::log::start();
 
     // Tera template stuff
     let mut tera = Tera::new("templates/**/*.html")?;
