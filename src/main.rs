@@ -128,7 +128,7 @@ async fn main() -> tide::Result<()> {
     register_middleware(&mut app, &config);
     register_routes(&mut app);
 
-    app.listen("127.0.0.1:8080").await?;
+    app.listen(config.bind_host).await?;
 
     Ok(())
 }

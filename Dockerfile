@@ -1,4 +1,10 @@
-FROM rust
+FROM ubuntu:bionic
+
+RUN apt-get update && apt-get install curl build-essential libssl-dev pkg-config -y
+
+RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
+
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 RUN cargo install sqlx-cli  --no-default-features --features sqlite
 
@@ -25,7 +31,7 @@ ENV BIND_HOST=0.0.0.0:8080
 EXPOSE 8080
 
 RUN apt-get update && \
-    apt-get install su-exec -y && \
-    useradd -r -g microbloggy microbloggy
+    apt-get install gosu -y && \
+    useradd -r microbloggy
 
-CMD sqlx database create && sqlx migrate run && /opt/microbloggy
+CMD /opt/microbloggy
