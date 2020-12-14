@@ -24,6 +24,7 @@ WORKDIR /opt
 
 COPY --from=0 /opt/target/release/microbloggy /opt/microbloggy
 COPY --from=0 /opt/migrations /opt/migrations
+COPY --from=0 /opt/templates /opt/templates
 COPY --from=0 /opt/static /opt/static
 
 ENV BIND_HOST=0.0.0.0:8080
