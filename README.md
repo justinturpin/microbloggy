@@ -46,11 +46,13 @@ Internals
 
 Features:
 
-- [ ] Customize User Profile
+- [x] Customize User Profile
 - [ ] Actual error message when the login credentials are wrong
-- [ ] Allow editing and deleting posts
+- [x] Allow editing and deleting posts
 - [ ] Allow setting a short friend URL for posts for sharing reasons
 - [ ] Make some colors customizable
 - [ ] Allow uploading and resizing photos
 - [ ] Support multiple users
 - [ ] Show multiple pages of posts
+- [ ] Show local times and dates based on users browser (render UTC in HTML)
+- [ ] Scale textareas based on size

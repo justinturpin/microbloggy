@@ -1,7 +1,6 @@
 use super::State;
 
 use tide_tera::prelude::*;
-// use sqlx::prelude::*;
 use tide::{Request, Response, Redirect};
 use serde::{Serialize, Deserialize};
 use chrono::prelude::*;
@@ -30,6 +29,22 @@ pub struct PostEditFormInput {
     #[serde(rename = "csrf-token")]
     csrf_token: String,
 }
+
+#[derive(Deserialize)]
+pub struct PostDeleteFormInput {
+    #[serde(rename = "csrf-token")]
+    csrf_token: String,
+}
+
+#[derive(Deserialize)]
+pub struct ProfileUpdateFormInput {
+    name: String,
+    bio: String,
+
+    #[serde(rename = "csrf-token")]
+    csrf_token: String,
+}
+
 
 #[derive(Serialize)]
 pub struct Post {
@@ -128,9 +143,12 @@ pub async fn user_profile(req: Request<State>) -> tide::Result<Response> {
     let state: &State = req.state();
     let session = req.session();
     let tera: &tera::Tera = &state.tera;
-    let config = &state.config;
 
-    if !session.get::<bool>("logged_in").unwrap_or(false) {
+    let logged_in = session.get::<bool>("logged_in").unwrap_or(false);
+    let csrf_token = session.get::<String>("csrf_token").unwrap();
+
+    if !logged_in {
+        // TODO: anonymous users should be able to see a non-editable profile pages right?
         Ok(
             tide::Response::builder(400)
                 .body("Unauthorized")
@@ -139,12 +157,58 @@ pub async fn user_profile(req: Request<State>) -> tide::Result<Response> {
         )
     } else {
         let mut context = tera::Context::new();
+        let mut db_conn = state.sqlite_pool.acquire().await?;
 
-        context.insert("name", "Default User");
-        context.insert("username", &config.admin_username);
-        context.insert("bio", "Default Bio");
+        let row = sqlx::query!(
+                "SELECT name, username, bio FROM users WHERE rowid=1"
+            )
+            .fetch_one(&mut db_conn)
+            .await?;
+
+        context.insert("name" , &row.name);
+        context.insert("username", &row.username);
+        context.insert("bio", &row.bio);
+        context.insert("csrf_token", &csrf_token);
 
         tera.render_response("profile.html", &context)
+    }
+}
+
+/// Update user profile
+pub async fn user_profile_update(mut req: Request<State>) -> tide::Result<Response> {
+    let state: &State = req.state();
+    let session = req.session();
+
+    let csrf_token = session.get::<String>("csrf_token").unwrap();
+    let logged_in = session.get::<bool>("logged_in").unwrap_or(false);
+
+    if !logged_in {
+        Ok(
+            tide::Response::builder(400)
+                .body("Unauthorized")
+                .content_type(tide::http::mime::HTML)
+                .build()
+        )
+    } else {
+        let mut db_conn = state.sqlite_pool.acquire().await?;
+
+        let form_input: ProfileUpdateFormInput = req.body_form().await?;
+
+         // Validate CSRF
+         if form_input.csrf_token != csrf_token {
+            Ok(tide::Response::builder(400).body("Invalid CSRF").build())
+        } else {
+            sqlx::query!(
+                    "UPDATE users SET name=?1, bio=?2 WHERE rowid=?3",
+                    form_input.name,
+                    form_input.bio,
+                    1
+                )
+                .execute(&mut db_conn)
+                .await?;
+
+            Ok(tide::Redirect::new("/user/profile").into())
+        }
     }
 }
 
@@ -235,7 +299,6 @@ pub async fn post_edit(mut req: Request<State>) -> tide::Result<Response> {
     if !logged_in {
         Ok(tide::Response::builder(400).body("Forbidden").build())
     }  else {
-
         // Validate CSRF
         if form_input.csrf_token != csrf_token {
             Ok(tide::Response::builder(400).body("Invalid CSRF").build())
@@ -254,6 +317,37 @@ pub async fn post_edit(mut req: Request<State>) -> tide::Result<Response> {
                 )
                 .into()
             )
+        }
+    }
+}
+
+/// Delete a post
+pub async fn post_delete(mut req: Request<State>) -> tide::Result<Response> {
+    let state = req.state();
+    let session = req.session();
+
+    let csrf_token = session.get::<String>("csrf_token").unwrap();
+    let logged_in = session.get::<bool>("logged_in").unwrap_or(false);
+
+    let mut db_conn = state.sqlite_pool.acquire().await?;
+    let form_input: PostDeleteFormInput = req.body_form().await?;
+    let post_id = req.param("post_id").unwrap();
+
+    if !logged_in {
+        Ok(tide::Response::builder(400).body("Forbidden").build())
+    }  else {
+        // Validate CSRF
+        if form_input.csrf_token != csrf_token {
+            Ok(tide::Response::builder(400).body("Invalid CSRF").build())
+        } else {
+            sqlx::query!(
+                    "DELETE FROM posts WHERE rowid=?",
+                    post_id
+                )
+                .execute(&mut db_conn)
+                .await?;
+
+            Ok(tide::Redirect::new("/").into())
         }
     }
 }

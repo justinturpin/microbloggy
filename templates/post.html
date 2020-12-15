@@ -15,7 +15,12 @@
 
     <div class="post-content">{{ content | markdown | safe }}</div>
 
-    <div id="editpost-toggle-button">Edit Post</div>
+    {% if logged_in %}
+        <div id="edit-post-toggle-button">Edit Post</div>
+        <div id="delete-post-toggle-button">
+            <p>Delete Post</p>
+        </div>
+    {% endif %}
 </div>
 
 {% if logged_in %}
@@ -24,18 +29,44 @@
             <input type="hidden" name="csrf-token" value="{{ csrf_token }}">
             <textarea name="content">{{ content }}</textarea>
 
-            <input type="submit" id="editpost-button" value="Edit Post">
+            <input type="submit" id="edit-post-button" value="Edit Post">
         </form>
     </div>
 
+    <div id="modal-container">
+        <div id="delete-post-container" class="modal">
+            <form action="/post/delete/{{ post_id }}" method="POST">
+                <div>
+                    <p>Are you sure you want to permanently delete this post?</p>
+                </div>
+
+                <input type="hidden" name="csrf-token" value="{{ csrf_token }}">
+                <input type="submit" id="delete-post-button" value="Confirm Deletion">
+            </form>
+        </div>
+    </div>
+
     <script>
-        let postEditToggleButton = document.getElementById("editpost-toggle-button");
+        let postEditToggleButton = document.getElementById("edit-post-toggle-button");
+        let deletePostToggleButton = document.getElementById("delete-post-toggle-button");
         let postEditContainer = document.getElementById("post-edit-container");
         let postStaticContainer = document.getElementById("post-static-container");
+        let modalContainer = document.getElementById("modal-container");
 
         postEditToggleButton.onclick = (e) => {
             postEditContainer.style.display = "block";
             postStaticContainer.style.display = "none";
+        }
+
+        deletePostToggleButton.onclick = (e) => {
+            /* Start modal stuff */
+            modalContainer.style.display = "block";
+        }
+
+        modalContainer.onclick = (e) => {
+            if (e.target == modalContainer) {
+                modalContainer.style.display = "none";
+            }
         }
     </script>
 {% endif %}

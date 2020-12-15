@@ -59,12 +59,16 @@ fn register_middleware(app: &mut tide::Server<State>, config: &config::Config) {
 fn register_routes(app: &mut tide::Server<State>) {
     // Main Routes
     app.at("/").get(routes::index);
+
     app.at("/user/login").get(routes::user_login);
     app.at("/user/login").post(routes::user_login_post);
     app.at("/user/profile").get(routes::user_profile);
+    app.at("/user/profile").post(routes::user_profile_update);
+
     app.at("/post/create").post(routes::post_create);
     app.at("/post/view/:post_id").get(routes::post_view);
     app.at("/post/edit/:post_id").post(routes::post_edit);
+    app.at("/post/delete/:post_id").post(routes::post_delete);
 
     // Static Files (fonts, favicon, css)
     app.at("/static").serve_dir("static").unwrap();
