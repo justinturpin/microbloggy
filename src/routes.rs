@@ -1,7 +1,7 @@
 use super::State;
 
 use tide_tera::prelude::*;
-use sqlx::prelude::*;
+// use sqlx::prelude::*;
 use tide::{Request, Response, Redirect};
 use serde::{Serialize, Deserialize};
 use chrono::prelude::*;
@@ -23,9 +23,18 @@ pub struct PostFormInput {
     csrf_token: String,
 }
 
+#[derive(Deserialize)]
+pub struct PostEditFormInput {
+    content: String,
+
+    #[serde(rename = "csrf-token")]
+    csrf_token: String,
+}
+
 #[derive(Serialize)]
 pub struct Post {
     username: String,
+    post_id: i64,
     name: String,
     user_id: i64,
     content: String,
@@ -35,7 +44,9 @@ pub struct Post {
 pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
     let tera = &req.state().tera;
     let session = req.session();
+
     let csrf_token = session.get::<String>("csrf_token").unwrap();
+    let logged_in = session.get::<bool>("logged_in").unwrap_or(false);
 
     let mut db_conn = (&req.state()).sqlite_pool.acquire().await?;
     let mut context = tera::Context::new();
@@ -47,7 +58,9 @@ pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
 
     // Query for all posts, joined on users of that post
     let result = sqlx::query!(
-            r#"SELECT users.username, users.name, users.rowid AS user_id, posts.content, posts.posted_timestamp
+            r#"SELECT
+                users.username, users.name, users.rowid AS user_id,
+                posts.rowid AS post_id, posts.content, posts.posted_timestamp
             FROM users, posts
             WHERE users.rowid=posts.user_id AND posts.posted_timestamp <= ?
             ORDER BY posted_timestamp desc LIMIT 50"#,
@@ -64,13 +77,14 @@ pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
             username: row.username,
             name: row.name,
             user_id: row.user_id.unwrap(),
+            post_id: row.post_id.unwrap(),
             content: row.content,
             posted_timestamp: row.posted_timestamp,
         });
     }
 
     context.insert("posts", &posts);
-    context.insert("logged_in", &session.get::<bool>("logged_in").unwrap_or(false));
+    context.insert("logged_in", &logged_in);
     context.insert("csrf_token", &csrf_token);
 
     tera.render_response("index.html", &context)
@@ -110,7 +124,7 @@ pub async fn user_login_post(mut req: Request<State>) -> tide::Result<tide::Resp
 }
 
 /// User profile
-pub async fn user_profile(mut req: Request<State>) -> tide::Result<Response> {
+pub async fn user_profile(req: Request<State>) -> tide::Result<Response> {
     let state: &State = req.state();
     let session = req.session();
     let tera: &tera::Tera = &state.tera;
@@ -134,13 +148,51 @@ pub async fn user_profile(mut req: Request<State>) -> tide::Result<Response> {
     }
 }
 
+/// View a single post
+pub async fn post_view(req: Request<State>) -> tide::Result<Response> {
+    let state = req.state();
+    let session = req.session();
+    let tera = &state.tera;
+
+    let csrf_token = session.get::<String>("csrf_token").unwrap();
+    let logged_in = session.get::<bool>("logged_in").unwrap_or(false);
+
+    let mut db_conn = state.sqlite_pool.acquire().await?;
+    let post_id = req.param("post_id").unwrap();
+
+    let row = sqlx::query!(
+                r#"SELECT users.username, users.name, users.rowid AS user_id,
+                    posts.content, posts.posted_timestamp
+                FROM users, posts
+                WHERE users.rowid=posts.user_id AND posts.rowid=?"#,
+            post_id)
+        .fetch_one(&mut db_conn)
+        .await?;
+
+    // TODO: this will just panic if the post doesn't exist instead of 404ing
+
+    let mut context = tera::Context::new();
+
+    context.insert("username", &row.username);
+    context.insert("name", &row.name);
+    context.insert("user_id", &row.user_id.unwrap());
+    context.insert("content", &row.content);
+    context.insert("post_id", &post_id);
+    context.insert("csrf_token", &csrf_token);
+    context.insert("logged_in", &logged_in);
+
+    tera.render_response("post.html", &context)
+}
+
 /// Handle post creation
 pub async fn post_create(mut req: Request<State>) -> tide::Result<Response> {
     let session = req.session();
-    let csrf_token = req.session().get::<String>("csrf_token").unwrap();
+
+    let csrf_token = session.get::<String>("csrf_token").unwrap();
+    let logged_in = session.get::<bool>("logged_in").unwrap_or(false);
 
     // Ensure logged in
-    if !session.get::<bool>("logged_in").unwrap() {
+    if !logged_in {
         Ok(Redirect::new("/").into())
     } else {
         let mut db_conn = (&req.state()).sqlite_pool.acquire().await?;
@@ -164,6 +216,44 @@ pub async fn post_create(mut req: Request<State>) -> tide::Result<Response> {
             let response: Response = Redirect::new("/").into();
 
             Ok(response)
+        }
+    }
+}
+
+/// Edit a post
+pub async fn post_edit(mut req: Request<State>) -> tide::Result<Response> {
+    let state = req.state();
+    let session = req.session();
+
+    let csrf_token = session.get::<String>("csrf_token").unwrap();
+    let logged_in = session.get::<bool>("logged_in").unwrap_or(false);
+
+    let mut db_conn = state.sqlite_pool.acquire().await?;
+    let form_input: PostEditFormInput = req.body_form().await?;
+    let post_id = req.param("post_id").unwrap();
+
+    if !logged_in {
+        Ok(tide::Response::builder(400).body("Forbidden").build())
+    }  else {
+
+        // Validate CSRF
+        if form_input.csrf_token != csrf_token {
+            Ok(tide::Response::builder(400).body("Invalid CSRF").build())
+        } else {
+            sqlx::query!(
+                    "UPDATE posts SET content=? WHERE rowid=?",
+                    form_input.content,
+                    post_id
+                )
+                .execute(&mut db_conn)
+                .await?;
+
+            Ok(
+                tide::Redirect::new(
+                    format!("/post/view/{}", post_id).as_str()
+                )
+                .into()
+            )
         }
     }
 }

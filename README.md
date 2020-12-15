@@ -29,10 +29,20 @@ $ cargo test
 Building:
 
 - [x] Use Sqlx for database migrations
-- [ ] Use Makefile or other solution to ensure that the database exists already
+- [x] Use Makefile or other solution to ensure that the database exists already
+    - Somewhat mitigated by using create_if_not_exists in the sqlite pool options
 - [ ] Add additional tests for post flow
-- [ ] Build and test dockerfile
-- [ ] Load testing on large databases (is it HN proof)
+- [x] Build and test Dockerfile
+    - Dockerfile uses Ubuntu for builder and runner because I was having some Glibc compatibility
+      issues using rust as the builder
+- [x] Load testing on large databases (is it HN proof)
+    - Ish? Getting 350 requests per second with Siege on a 1 Cpu Digitalocean VM which is fast
+      enough but maybe slower than I would hope for how simple it is. Is generating a CSRF token
+      per page load the performance issue?
+
+Internals
+- [ ] Middleware for authentication verification instead of boilerplate session checks
+- [ ] Middlware for CSRF validation
 
 Features:
 

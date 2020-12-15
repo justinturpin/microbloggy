@@ -93,6 +93,10 @@ textarea {
     background: rgb(136, 183, 255);
 }
 
+/*
+Create Post Stuff
+*/
+
 #createpost-container {
     padding: 16px;
     border-bottom: 2px solid rgb(214, 214, 214);
@@ -116,6 +120,10 @@ textarea {
 #createpost-button:hover {
     background: rgb(136, 183, 255);
 }
+
+/*
+Profile Stuff
+*/
 
 #profile-button {
     float: right;
@@ -161,6 +169,57 @@ textarea {
 .post:hover {
     background: rgb(240, 240, 240);
 }
+
+.post-permalink {
+    opacity: 0;
+    transition: opacity 0.1s;
+}
+
+.post:hover .post-permalink {
+    opacity: 1;
+}
+
+.post-content {
+    margin-bottom: 12px;
+}
+
+/*
+Edit Post Stuff
+*/
+
+#editpost-toggle-button {
+    border: none;
+    background: rgb(255, 98, 98);
+    color: white;
+    padding: 8px 16px;
+    font-weight: bold;
+    font-size: 1.0em;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+#editpost-container {
+    display: none;
+}
+
+#editpost-button {
+    border: none;
+    background: rgb(255, 98, 98);
+    color: white;
+    padding: 16px 32px;
+    font-weight: bold;
+    font-size: 1.0em;
+    border-radius: 16px;
+    cursor: pointer;
+}
+
+#editpost-button:hover {
+    background: rgb(255, 136, 136);
+}
+
+/*
+Login Form Stuff
+*/
 
 #loginform input {
     width: 100%;

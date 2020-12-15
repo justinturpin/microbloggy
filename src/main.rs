@@ -1,18 +1,13 @@
 use rand::Rng;
-use async_std::task::{spawn, sleep};
-use std::time::Duration;
+// use async_std::task::{spawn, sleep};
 
-use tide::prelude::*;
-use tide::{Request, Redirect, Response, StatusCode};
+use tide::Request;
 use tera::Tera;
-use tide_tera::prelude::*;
 
-use sqlx::prelude::*;
 use sqlx::{Sqlite, SqlitePool};
 use sqlx::pool::PoolConnection;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode};
 
-use serde::Serialize;
 use serde_json::Value;
 use std::str::FromStr;
 
@@ -68,6 +63,8 @@ fn register_routes(app: &mut tide::Server<State>) {
     app.at("/user/login").post(routes::user_login_post);
     app.at("/user/profile").get(routes::user_profile);
     app.at("/post/create").post(routes::post_create);
+    app.at("/post/view/:post_id").get(routes::post_view);
+    app.at("/post/edit/:post_id").post(routes::post_edit);
 
     // Static Files (fonts, favicon, css)
     app.at("/static").serve_dir("static").unwrap();
@@ -105,7 +102,7 @@ async fn main() -> tide::Result<()> {
     let config = config::Config::from_env();
 
     // Test performance with disabled logging
-    // tide::log::start();
+    tide::log::start();
 
     // Tera template stuff
     let mut tera = Tera::new("templates/**/*.html")?;

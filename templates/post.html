@@ -3,4 +3,42 @@
 {% block content %}
 <h2>Post</h2>
 
+<div>
+    <a href="/">Back to Home</a>
+</div>
+
+<div class="post" id="post-static-container">
+    <h4>
+        <span class="post-name">{{ name }}</span>
+        <span class="post-username">@{{ username }}</span>
+    </h4>
+
+    <div class="post-content">{{ content | markdown | safe }}</div>
+
+    <div id="editpost-toggle-button">Edit Post</div>
+</div>
+
+{% if logged_in %}
+    <div id="post-edit-container" style="display: none">
+        <form action="/post/edit/{{ post_id }}" method="POST">
+            <input type="hidden" name="csrf-token" value="{{ csrf_token }}">
+            <textarea name="content">{{ content }}</textarea>
+
+            <input type="submit" id="editpost-button" value="Edit Post">
+        </form>
+    </div>
+
+    <script>
+        let postEditToggleButton = document.getElementById("editpost-toggle-button");
+        let postEditContainer = document.getElementById("post-edit-container");
+        let postStaticContainer = document.getElementById("post-static-container");
+
+        postEditToggleButton.onclick = (e) => {
+            postEditContainer.style.display = "block";
+            postStaticContainer.style.display = "none";
+        }
+    </script>
+{% endif %}
+
+
 {% endblock %}
