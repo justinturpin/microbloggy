@@ -53,6 +53,7 @@ Features:
 - [ ] Make some colors customizable
 - [ ] Allow uploading and resizing photos
 - [ ] Support multiple users
-- [ ] Show multiple pages of posts
-- [ ] Show local times and dates based on users browser (render UTC in HTML)
-- [ ] Scale textareas based on size
+- [x] Show multiple pages of posts
+- [x] Show local times and dates based on users browser (render UTC in HTML)
+- [x] Scale textareas based on size
+  - This is _kind of_ implemented but isn't very dynamic and is a bit hardcoded
