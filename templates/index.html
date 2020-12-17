@@ -18,8 +18,9 @@
 </div>
 {% endif %}
 
-<h2>
-    Latests Posts
+<h2 id="latest-post-heading">
+    <a id="latest-post-link" href="/">Latest Posts</a>
+
     {% if not logged_in %}<a id="login-button" href="/user/login">Log In</a>{% endif %}
 </h2>
 
@@ -29,11 +30,23 @@
             <span class="post-name">{{ post.name }}</span>
             <span class="post-username">@{{ post.username }}</span>
 
+            <span>&#183;</span>
+
+            <span class="post-timestamp">
+                <time datetime="{{ post.posted_timestamp }}">{{ post.posted_timestamp }}</time>
+            </span>
+
             <a href="/post/view/{{ post.post_id }}" class="post-permalink">Permalink</a>
         </h4>
 
         <div class="post-content">{{ post.content | markdown | safe }}</div>
     </div>
+
+    {% if loop.last and view_more %}
+        <div class="view-more">
+            <a href="/?before_timestamp={{ post.posted_timestamp }}">View More Posts</a>
+        </div>
+    {% endif %}
 {% else %}
     <div id="noposts">
         No posts yet, but stay tuned!

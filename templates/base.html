@@ -21,5 +21,31 @@
                 Microbloggy Alpha Version
             </footer>
         </div>
+
+        <script>
+            let dates = document.getElementsByTagName("time");
+
+            for (date of dates) {
+                let dateData = new Date();
+
+                dateData.setTime(
+                    Date.parse(date.textContent)
+                );
+
+                date.textContent = dateData.toLocaleString();
+            }
+
+            let textareas = document.getElementsByTagName("textarea");
+
+            for (textarea of textareas) {
+                let actualHeight = Math.round(parseFloat(
+                    window.getComputedStyle(textarea).height
+                ));
+
+                console.log(actualHeight);
+
+                textarea.style.height = (textarea.scrollHeight + 18) + "px";
+            }
+        </script>
     </body>
 </html>

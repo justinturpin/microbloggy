@@ -4,7 +4,8 @@ pub struct Config {
     pub admin_username: String,
     pub admin_password: String,
     pub session_secret: String,
-    pub bind_host: String
+    pub bind_host: String,
+    pub posts_per_page: u64
 }
 
 impl Config {
@@ -22,7 +23,11 @@ impl Config {
             admin_username: std::env::var("ADMIN_USERNAME").unwrap(),
             admin_password: std::env::var("ADMIN_PASSWORD").unwrap(),
             session_secret: session_secret,
-            bind_host: std::env::var("BIND_HOST").unwrap_or("127.0.0.1:8080".to_string())
+            bind_host: std::env::var("BIND_HOST").unwrap_or("127.0.0.1:8080".to_string()),
+            posts_per_page: match std::env::var("POSTS_PER_PAGE") {
+                Ok(value) => value.parse().unwrap(),
+                Err(_) => 50
+            }
         }
     }
 }

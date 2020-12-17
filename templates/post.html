@@ -9,11 +9,17 @@
 
 <div class="post" id="post-static-container">
     <h4>
-        <span class="post-name">{{ name }}</span>
-        <span class="post-username">@{{ username }}</span>
+        <span class="post-name">{{ post.name }}</span>
+        <span class="post-username">@{{ post.username }}</span>
+
+        <span>&#183;</span>
+
+        <span class="post-timestamp">
+            <time datetime="{{ post.posted_timestamp }}">{{ post.posted_timestamp }}</time>
+        </span>
     </h4>
 
-    <div class="post-content">{{ content | markdown | safe }}</div>
+    <div class="post-content">{{ post.content | markdown | safe }}</div>
 
     {% if logged_in %}
         <div id="edit-post-toggle-button">Edit Post</div>
@@ -25,9 +31,9 @@
 
 {% if logged_in %}
     <div id="post-edit-container" style="display: none">
-        <form action="/post/edit/{{ post_id }}" method="POST">
+        <form action="/post/edit/{{ post.post_id }}" method="POST">
             <input type="hidden" name="csrf-token" value="{{ csrf_token }}">
-            <textarea name="content">{{ content }}</textarea>
+            <textarea name="content">{{ post.content }}</textarea>
 
             <input type="submit" id="edit-post-button" value="Edit Post">
         </form>
@@ -35,7 +41,7 @@
 
     <div id="modal-container">
         <div id="delete-post-container" class="modal">
-            <form action="/post/delete/{{ post_id }}" method="POST">
+            <form action="/post/delete/{{ post.post_id }}" method="POST">
                 <div>
                     <p>Are you sure you want to permanently delete this post?</p>
                 </div>

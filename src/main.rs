@@ -89,13 +89,24 @@ async fn bootstrap_database(config: &config::Config) -> tide::Result<SqlitePool>
     let mut connection: PoolConnection<Sqlite> = sqlite_pool.acquire().await?;
 
     // Bootstrap user (only 1 user for now hardcoded as user id 1)
-    sqlx::query!(
-            "REPLACE INTO users (rowid, username) VALUES (?1, ?2)",
-            1,
-            config.admin_username
-        )
-        .execute(&mut connection)
+    let user = sqlx::query!("SELECT username FROM users")
+        .fetch_optional(&mut connection)
         .await?;
+
+    match user {
+        None => {
+            sqlx::query!(
+                "INSERT INTO users (rowid, username, name, bio) VALUES (?, ?, ?, ?)",
+                1,
+                config.admin_username,
+                "Default User",
+                "Default Bio"
+            )
+            .execute(&mut connection)
+            .await?;
+        },
+        _ => {}
+    };
 
     Ok(sqlite_pool)
 }

@@ -24,7 +24,9 @@ async fn bootstrap_test() -> std::io::Result<()> {
         admin_username: "testuser".to_string(),
         admin_password: "testpassword".to_string(),
         database_url: std::env::var("DATABASE_URL").unwrap().to_string(),
-        session_secret: "testsessionsecrettestsessionsecrettestsessionsecret".to_string()
+        session_secret: "testsessionsecrettestsessionsecrettestsessionsecret".to_string(),
+        bind_host: "127.0.0.1:8080".to_string(),
+        posts_per_page: 20
     };
 
     let mut tera = Tera::new("templates/**/*.html").unwrap();

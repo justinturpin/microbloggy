@@ -45,6 +45,10 @@ pub struct ProfileUpdateFormInput {
     csrf_token: String,
 }
 
+#[derive(Deserialize)]
+struct IndexQuery {
+    before_timestamp: Option<String>
+}
 
 #[derive(Serialize)]
 pub struct Post {
@@ -57,19 +61,24 @@ pub struct Post {
 }
 
 pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
-    let tera = &req.state().tera;
+    let state = req.state();
     let session = req.session();
+    let tera = &state.tera;
+    let config = &state.config;
 
     let csrf_token = session.get::<String>("csrf_token").unwrap();
     let logged_in = session.get::<bool>("logged_in").unwrap_or(false);
+    let posts_per_page = config.posts_per_page as i64;
 
     let mut db_conn = (&req.state()).sqlite_pool.acquire().await?;
     let mut context = tera::Context::new();
     let now = Utc::now().to_rfc3339();
 
-    let before_timestamp = req
-        .param("before_timestamp")
-        .unwrap_or(now.as_str());
+    let query: IndexQuery = req.query().unwrap();
+    let before_timestamp: String = match query.before_timestamp {
+        Some(timestamp) => timestamp,
+        None => now
+    };
 
     // Query for all posts, joined on users of that post
     let result = sqlx::query!(
@@ -77,9 +86,10 @@ pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
                 users.username, users.name, users.rowid AS user_id,
                 posts.rowid AS post_id, posts.content, posts.posted_timestamp
             FROM users, posts
-            WHERE users.rowid=posts.user_id AND posts.posted_timestamp <= ?
-            ORDER BY posted_timestamp desc LIMIT 50"#,
-            before_timestamp
+            WHERE users.rowid=posts.user_id AND posts.posted_timestamp < ?1
+            ORDER BY posted_timestamp desc LIMIT ?2"#,
+            before_timestamp,
+            posts_per_page
         )
         .fetch_all(&mut db_conn)
         .await?;
@@ -101,6 +111,7 @@ pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
     context.insert("posts", &posts);
     context.insert("logged_in", &logged_in);
     context.insert("csrf_token", &csrf_token);
+    context.insert("view_more", &(posts.len() >= config.posts_per_page as usize));
 
     tera.render_response("index.html", &context)
 }
@@ -222,7 +233,7 @@ pub async fn post_view(req: Request<State>) -> tide::Result<Response> {
     let logged_in = session.get::<bool>("logged_in").unwrap_or(false);
 
     let mut db_conn = state.sqlite_pool.acquire().await?;
-    let post_id = req.param("post_id").unwrap();
+    let post_id: i64 = req.param("post_id").unwrap().parse().unwrap();
 
     let row = sqlx::query!(
                 r#"SELECT users.username, users.name, users.rowid AS user_id,
@@ -237,13 +248,19 @@ pub async fn post_view(req: Request<State>) -> tide::Result<Response> {
 
     let mut context = tera::Context::new();
 
-    context.insert("username", &row.username);
-    context.insert("name", &row.name);
-    context.insert("user_id", &row.user_id.unwrap());
-    context.insert("content", &row.content);
-    context.insert("post_id", &post_id);
     context.insert("csrf_token", &csrf_token);
     context.insert("logged_in", &logged_in);
+    context.insert(
+        "post",
+        &Post{
+            username: row.username,
+            name: row.name,
+            user_id: row.user_id.unwrap(),
+            post_id: post_id,
+            content: row.content,
+            posted_timestamp: row.posted_timestamp,
+        }
+    );
 
     tera.render_response("post.html", &context)
 }
