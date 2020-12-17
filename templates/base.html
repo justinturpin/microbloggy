@@ -9,6 +9,31 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <link rel="shortcut icon" href="/static/favicon.svg">
+
+        <script>
+            function resizeTextareas() {
+                let textareas = document.getElementsByTagName("textarea");
+
+                for (textarea of textareas) {
+                    // Don't know why this is necessary
+                    textarea.style.height = "inherit";
+
+                    let computed = window.getComputedStyle(textarea);
+
+                    let newHeight = (
+                        parseFloat(computed.getPropertyValue("border-top-width"))
+                        + parseFloat(computed.getPropertyValue("border-bottom-width"))
+                        + parseFloat(computed.getPropertyValue("padding-top"))
+                        + parseFloat(computed.getPropertyValue("padding-bottom"))
+                        + textarea.scrollHeight
+                    );
+
+                    console.log(newHeight);
+
+                    textarea.style.height = newHeight + "px";
+                }
+            }
+        </script>
     </head>
 
     <body>
@@ -35,17 +60,9 @@
                 date.textContent = dateData.toLocaleString();
             }
 
-            let textareas = document.getElementsByTagName("textarea");
+            resizeTextareas();
 
-            for (textarea of textareas) {
-                let actualHeight = Math.round(parseFloat(
-                    window.getComputedStyle(textarea).height
-                ));
-
-                console.log(actualHeight);
-
-                textarea.style.height = (textarea.scrollHeight + 18) + "px";
-            }
+            setInterval(resizeTextareas, 500);
         </script>
     </body>
 </html>
