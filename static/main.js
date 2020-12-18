@@ -15,8 +15,6 @@ function resizeTextareas() {
             + textarea.scrollHeight
         );
 
-        console.log(newHeight);
-
         textarea.style.height = newHeight + "px";
     }
 }
