@@ -54,6 +54,15 @@ fn register_middleware(app: &mut tide::Server<State>, config: &config::Config) {
 
         request
     }));
+
+    // Add Security Headers
+    app.with(tide::utils::After(|mut res: tide::Response| async move {
+        res.append_header("X-Frame-Options", "DENY");
+        res.append_header("X-Content-Type-Options", "nosniff");
+        res.append_header("Content-Security-Policy", "default-src 'self'");
+
+        Ok(res)
+    }));
 }
 
 fn register_routes(app: &mut tide::Server<State>) {
