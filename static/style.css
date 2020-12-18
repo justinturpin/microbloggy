@@ -115,6 +115,10 @@ Modal Stuff
     background: white;
 }
 
+#post-edit-container {
+    display: none;
+}
+
 /*
 Login Stuff
 */

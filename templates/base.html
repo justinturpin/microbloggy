@@ -10,30 +10,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <link rel="shortcut icon" href="/static/favicon.svg">
 
-        <script>
-            function resizeTextareas() {
-                let textareas = document.getElementsByTagName("textarea");
-
-                for (textarea of textareas) {
-                    // Don't know why this is necessary
-                    textarea.style.height = "inherit";
-
-                    let computed = window.getComputedStyle(textarea);
-
-                    let newHeight = (
-                        parseFloat(computed.getPropertyValue("border-top-width"))
-                        + parseFloat(computed.getPropertyValue("border-bottom-width"))
-                        + parseFloat(computed.getPropertyValue("padding-top"))
-                        + parseFloat(computed.getPropertyValue("padding-bottom"))
-                        + textarea.scrollHeight
-                    );
-
-                    console.log(newHeight);
-
-                    textarea.style.height = newHeight + "px";
-                }
-            }
-        </script>
+        <script src="/static/main.js"></script>
     </head>
 
     <body>
@@ -46,23 +23,5 @@
                 Microbloggy Alpha Version
             </footer>
         </div>
-
-        <script>
-            let dates = document.getElementsByTagName("time");
-
-            for (date of dates) {
-                let dateData = new Date();
-
-                dateData.setTime(
-                    Date.parse(date.textContent)
-                );
-
-                date.textContent = dateData.toLocaleString();
-            }
-
-            resizeTextareas();
-
-            setInterval(resizeTextareas, 500);
-        </script>
     </body>
 </html>
