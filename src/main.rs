@@ -1,7 +1,10 @@
 use rand::Rng;
 // use async_std::task::{spawn, sleep};
+use std::pin::Pin;
+use std::future::Future;
 
-use tide::Request;
+use tide::{Request, Middleware, Next, Result};
+use tide::http::StatusCode;
 use tera::Tera;
 
 use sqlx::{Sqlite, SqlitePool};
@@ -20,6 +23,11 @@ pub struct State {
     tera: Tera,
     sqlite_pool: sqlx::SqlitePool,
     config: config::Config
+}
+
+#[derive(Clone, Default, Debug)]
+pub struct MessageFlashes {
+    messages: String
 }
 
 /// Tera Markdown Filter - Uses pulldown_cmark to parse Markdown
@@ -52,6 +60,17 @@ fn register_middleware(app: &mut tide::Server<State>, config: &config::Config) {
             session.insert("csrf_token", format!("{}", rand.gen::<u64>())).unwrap();
         }
 
+        let messages = session.get::<String>("messages");
+
+        if let Some(value) = messages {
+            request.set_ext(MessageFlashes{
+                messages: value
+            });
+
+            // Re-borrow session for lord knows why
+            request.session_mut().remove("messages");
+        }
+
         request
     }));
 
@@ -72,7 +91,8 @@ fn register_routes(app: &mut tide::Server<State>) {
     app.at("/user/login").get(routes::user_login);
     app.at("/user/login").post(routes::user_login_post);
     app.at("/user/profile").get(routes::user_profile);
-    app.at("/user/profile").post(routes::user_profile_update);
+    app.at("/user/profile/edit").get(routes::user_profile_edit);
+    app.at("/user/profile/edit").post(routes::user_profile_update);
 
     app.at("/post/create").post(routes::post_create);
     app.at("/post/view/:post_id").get(routes::post_view);

@@ -17,6 +17,10 @@
     <body>
         <div id="vertical-wrapper">
             <div id="content-wrapper">
+                {% if messages %}
+                    <div id="error-messages">{{ messages }}</div>
+                {% endif %}
+
                 {% block content %}{% endblock %}
             </div>
 

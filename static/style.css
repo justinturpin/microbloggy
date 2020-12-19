@@ -92,6 +92,16 @@ input[type=text], textarea {
 }
 
 /*
+Error message stuff
+*/
+
+#error-messages {
+    color: rgb(71, 0, 0);
+    background: rgb(255, 209, 209);
+    padding: 12px
+}
+
+/*
 Modal Stuff
 */
 
@@ -210,6 +220,19 @@ Profile Stuff
     height: 140px;
 }
 
+#profile-bio {
+    padding: 8px;
+}
+
+#profile-bio:hover {
+    background: rgb(240, 240, 240);
+}
+
+#profile-view-username {
+    color: gray;
+    font-weight: normal;
+}
+
 #profile-button {
     float: right;
     font-size: 0.9rem;
@@ -323,18 +346,18 @@ Login Form Stuff
     margin: 4px 0 6px 0;
 }
 
-#profile-container {
+#profile-edit-container {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
 }
 
-#profile-container div {
+#profile-edit-container div {
     flex: 50%;
     padding: 16px;
 }
 
-#profile-container div:nth-child(odd) {
+#profile-edit-container div:nth-child(odd) {
     text-align: right;
     color: gray;
 }

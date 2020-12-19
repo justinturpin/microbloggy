@@ -1,4 +1,4 @@
-use super::State;
+use super::{State, MessageFlashes};
 
 use tide_tera::prelude::*;
 use tide::{Request, Response, Redirect};
@@ -63,6 +63,7 @@ pub struct Post {
 pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
     let state = req.state();
     let session = req.session();
+    let messages: Option<&MessageFlashes> = req.ext();
     let tera = &state.tera;
     let config = &state.config;
 
@@ -113,17 +114,27 @@ pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
     context.insert("csrf_token", &csrf_token);
     context.insert("view_more", &(posts.len() >= config.posts_per_page as usize));
 
+    if let Some(m) = messages {
+        context.insert("messages", &m.messages);
+    }
+
     tera.render_response("index.html", &context)
 }
 
 /// Show user login form
 pub async fn user_login(req: Request<State>) -> tide::Result<tide::Response> {
     let tera = &req.state().tera;
+    let messages: Option<&MessageFlashes> = req.ext();
     let session = req.session();
     let csrf_token = session.get::<String>("csrf_token").unwrap();
 
     let mut context = tera::Context::new();
+
     context.insert("csrf_token", &csrf_token);
+
+    if let Some(m) = messages {
+        context.insert("messages", &m.messages);
+    }
 
     tera.render_response("login.html", &context)
 }
@@ -144,15 +155,50 @@ pub async fn user_login_post(mut req: Request<State>) -> tide::Result<tide::Resp
         // Login correct, set session
         Ok(Redirect::new("/").into())
     } else {
-        // TODO: show a nice error on failure
+        req.session_mut().insert(
+            "messages",
+            "Login error - ensure your credentials are correct.".to_string()
+        ).unwrap();
+
         Ok(Redirect::new("/user/login").into())
     }
 }
 
-/// User profile
+/// User profile view
 pub async fn user_profile(req: Request<State>) -> tide::Result<Response> {
     let state: &State = req.state();
     let session = req.session();
+    let messages: Option<&MessageFlashes> = req.ext();
+    let tera: &tera::Tera = &state.tera;
+
+    let mut context = tera::Context::new();
+    let mut db_conn = state.sqlite_pool.acquire().await?;
+
+    let logged_in = session.get::<bool>("logged_in").unwrap_or(false);
+
+    let row = sqlx::query!(
+            "SELECT name, username, bio FROM users WHERE rowid=1"
+        )
+        .fetch_one(&mut db_conn)
+        .await?;
+
+    context.insert("name" , &row.name);
+    context.insert("username", &row.username);
+    context.insert("bio", &row.bio);
+    context.insert("logged_in", &logged_in);
+
+    if let Some(m) = messages {
+        context.insert("messages", &m.messages);
+    }
+
+    tera.render_response("profile.html", &context)
+}
+
+/// User profile edit
+pub async fn user_profile_edit(req: Request<State>) -> tide::Result<Response> {
+    let state: &State = req.state();
+    let session = req.session();
+    let messages: Option<&MessageFlashes> = req.ext();
     let tera: &tera::Tera = &state.tera;
 
     let logged_in = session.get::<bool>("logged_in").unwrap_or(false);
@@ -181,7 +227,11 @@ pub async fn user_profile(req: Request<State>) -> tide::Result<Response> {
         context.insert("bio", &row.bio);
         context.insert("csrf_token", &csrf_token);
 
-        tera.render_response("profile.html", &context)
+        if let Some(m) = messages {
+            context.insert("messages", &m.messages);
+        }
+
+        tera.render_response("profile_edit.html", &context)
     }
 }
 
@@ -228,6 +278,7 @@ pub async fn post_view(req: Request<State>) -> tide::Result<Response> {
     let state = req.state();
     let session = req.session();
     let tera = &state.tera;
+    let messages: Option<&MessageFlashes> = req.ext();
 
     let csrf_token = session.get::<String>("csrf_token").unwrap();
     let logged_in = session.get::<bool>("logged_in").unwrap_or(false);
@@ -261,6 +312,10 @@ pub async fn post_view(req: Request<State>) -> tide::Result<Response> {
             posted_timestamp: row.posted_timestamp,
         }
     );
+
+    if let Some(m) = messages {
+        context.insert("messages", &m.messages);
+    }
 
     tera.render_response("post.html", &context)
 }

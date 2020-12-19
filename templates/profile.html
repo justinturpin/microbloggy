@@ -3,30 +3,19 @@
 {% block content %}
 <a href="/">Back to Home</a>
 
-<h2>Your Profile</h2>
+<h2>
+    <span id="profile-view-username">@{{ username }}</span>
+    {{ name }}'s Profile
 
-<form action="/user/profile" method="POST">
-    <input type="hidden" name="csrf-token" value="{{ csrf_token }}">
+    {% if logged_in %}
+        <a id="profile-button" href="/user/profile/edit">Update Profile</a>
+    {% endif %}
+</h2>
 
-    <div id="profile-container">
-        <div>Username</div>
-        <div>{{ username }}</div>
-
-        <div>Name</div>
-        <div>
-            <input type="text" name="name" value="{{ name }}">
-        </div>
-
-        <div>Bio</div>
-        <div>
-            <textarea id="bio-box" name="bio">{{ bio }}</textarea>
-        </div>
-
-        <div>&nbsp;</div>
-        <div>
-            <input id="update-profile-button" type="submit" value="Update Profile">
-        </div>
+<div id="profile-container">
+    <div id="profile-bio">
+        {{ bio | markdown | safe }}
     </div>
-</form>
+</div>
 
 {% endblock %}

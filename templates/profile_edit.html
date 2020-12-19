@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+<a href="/">Back to Home</a>
+
+<h2>Your Profile</h2>
+
+<form action="/user/profile/edit" method="POST">
+    <input type="hidden" name="csrf-token" value="{{ csrf_token }}">
+
+    <div id="profile-edit-container">
+        <div>Username</div>
+        <div>{{ username }}</div>
+
+        <div>Name</div>
+        <div>
+            <input type="text" name="name" value="{{ name }}">
+        </div>
+
+        <div>Bio</div>
+        <div>
+            <textarea id="bio-box" name="bio">{{ bio }}</textarea>
+        </div>
+
+        <div>&nbsp;</div>
+        <div>
+            <input id="update-profile-button" type="submit" value="Update Profile">
+        </div>
+    </div>
+</form>
+
+{% endblock %}
