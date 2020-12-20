@@ -13,6 +13,13 @@
         <textarea name="content" placeholder="What's happening?"></textarea>
         <input id="createpost-button" type="submit" value="Post">
     </form>
+
+    <h4>Attach Images</h4>
+
+    <form action="/post/image-upload" method="POST" enctype="multipart/form-data" id="image-upload-form">
+        <input type="file" name="image" accept="image/*" id="image-upload-input">
+        <input type="submit" value="Upload Image" id="image-upload-submit">
+    </form>
 </div>
 {% endif %}
 
@@ -54,5 +61,7 @@
         No posts yet, but stay tuned!
     </div>
 {% endfor %}
+
+<script src="/static/index.js"></script>
 
 {% endblock %}

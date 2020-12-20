@@ -46,6 +46,11 @@ pub struct ProfileUpdateFormInput {
 }
 
 #[derive(Deserialize)]
+pub struct ImageUploadFormInput {
+    image: String
+}
+
+#[derive(Deserialize)]
 struct IndexQuery {
     before_timestamp: Option<String>
 }
@@ -421,5 +426,44 @@ pub async fn post_delete(mut req: Request<State>) -> tide::Result<Response> {
 
             Ok(tide::Redirect::new("/").into())
         }
+    }
+}
+
+/// Upload an image
+pub async fn put_image_upload(mut req: Request<State>) -> tide::Result<Response> {
+    let state = req.state();
+    let session = req.session();
+
+    let csrf_token = session.get::<String>("csrf_token").unwrap();
+    let logged_in = session.get::<bool>("logged_in").unwrap_or(false);
+
+    if logged_in {
+        let filename = format!("{}.jpg", rand::random::<u64>());
+
+        let mut db_conn = state.sqlite_pool.acquire().await?;
+
+        let file = async_std::fs::File::create(
+            std::path::Path::new("uploads").join(filename)
+        ).await?;
+
+        async_std::io::copy(req, file).await?;
+
+        sqlx::query!(
+                "INSERT INTO image_uploads (image_full_path) VALUES (?)",
+                filename
+            ).execute(&mut db_conn)
+            .await?;
+
+        Ok(
+            tide::Response::builder(200)
+                .body("Image upload OK")
+                .build()
+        )
+    } else {
+        Ok(
+            tide::Response::builder(400)
+                .body("Not authorized")
+                .build()
+        )
     }
 }

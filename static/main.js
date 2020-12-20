@@ -20,6 +20,7 @@ function resizeTextareas() {
 }
 
 window.onload = (e) => {
+    // Turn all UTC dates into friendly, browser-timezone-local strings
     let dates = document.getElementsByTagName("time");
 
     for (date of dates) {
@@ -32,7 +33,10 @@ window.onload = (e) => {
         date.textContent = dateData.toLocaleString();
     }
 
+    // Resize all textareas
     resizeTextareas();
 
+    // Regularly resize all textareas instead of hooking into every key input
+    // one very textarea like some wonderful Javascript libraries want to do
     setInterval(resizeTextareas, 500);
 }

@@ -84,7 +84,7 @@ fn register_middleware(app: &mut tide::Server<State>, config: &config::Config) {
     }));
 }
 
-fn register_routes(app: &mut tide::Server<State>) {
+fn register_routes(app: &mut tide::Server<State>, config: &config::Config) {
     // Main Routes
     app.at("/").get(routes::index);
 
@@ -98,9 +98,14 @@ fn register_routes(app: &mut tide::Server<State>) {
     app.at("/post/view/:post_id").get(routes::post_view);
     app.at("/post/edit/:post_id").post(routes::post_edit);
     app.at("/post/delete/:post_id").post(routes::post_delete);
+    app.at("/post/image-upload").put(routes::put_image_upload);
 
     // Static Files (fonts, favicon, css)
     app.at("/static").serve_dir("static").unwrap();
+
+    // User-uploaded images
+    // TODO: this should be configurable
+    app.at("/uploads").serve_dir(config.uploads_path.as_path()).unwrap();
 }
 
 async fn bootstrap_database(config: &config::Config) -> tide::Result<SqlitePool> {
@@ -145,6 +150,8 @@ async fn main() -> tide::Result<()> {
     // Load application config
     let config = config::Config::from_env();
 
+    // TODO: test that uploads path is writable
+
     // Test performance with disabled logging
     tide::log::start();
 
@@ -168,7 +175,7 @@ async fn main() -> tide::Result<()> {
     let mut app = tide::with_state(state);
 
     register_middleware(&mut app, &config);
-    register_routes(&mut app);
+    register_routes(&mut app, &config);
 
     app.listen(config.bind_host).await?;
 
