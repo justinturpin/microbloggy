@@ -4,6 +4,8 @@ use tide_tera::prelude::*;
 use tide::{Request, Response, Redirect};
 use serde::{Serialize, Deserialize};
 use chrono::prelude::*;
+use std::path::{Path, PathBuf};
+use std::vec::Vec;
 
 #[derive(Deserialize)]
 pub struct LoginFormInput {
@@ -46,11 +48,6 @@ pub struct ProfileUpdateFormInput {
 }
 
 #[derive(Deserialize)]
-pub struct ImageUploadFormInput {
-    image: String
-}
-
-#[derive(Deserialize)]
 struct IndexQuery {
     before_timestamp: Option<String>
 }
@@ -63,6 +60,14 @@ pub struct Post {
     user_id: i64,
     content: String,
     posted_timestamp: String
+}
+
+#[derive(Serialize)]
+pub struct Image {
+    image_id: Option<i64>,
+    thumbnail_path: String,
+    medium_path: String,
+    full_path: String
 }
 
 pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
@@ -101,7 +106,7 @@ pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
         .await?;
 
     // TODO: I think you can collect all of this into a Vec of some struct
-    let mut posts = std::vec::Vec::new();
+    let mut posts = Vec::new();
 
     for row in result {
         posts.push(Post{
@@ -114,7 +119,27 @@ pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
         });
     }
 
+    let result = sqlx::query!(
+            r#"SELECT
+                image_thumbnail_path, image_medium_path, image_full_path
+                FROM image_uploads
+                WHERE post_id IS NULL
+            "#
+        )
+        .fetch_all(&mut db_conn)
+        .await?;
+
+    let images: Vec<Image> = result.into_iter().map(|row| {
+        Image {
+            image_id: None,
+            full_path: row.image_full_path.unwrap(),
+            medium_path: row.image_medium_path.unwrap(),
+            thumbnail_path: row.image_thumbnail_path.unwrap()
+        }
+    }).collect();
+
     context.insert("posts", &posts);
+    context.insert("images", &images);
     context.insert("logged_in", &logged_in);
     context.insert("csrf_token", &csrf_token);
     context.insert("view_more", &(posts.len() >= config.posts_per_page as usize));
@@ -347,12 +372,19 @@ pub async fn post_create(mut req: Request<State>) -> tide::Result<Response> {
             let now = Utc::now().to_rfc3339();
 
             // TODO: hardcoded user id of 1 should be dynamic, probably
+            let post_id = sqlx::query!(
+                    "INSERT INTO posts (user_id, content, posted_timestamp) VALUES (?1, ?2, ?3)",
+                    1,
+                    form_input.content,
+                    now
+                ).execute(&mut db_conn)
+                .await?;
+
             sqlx::query!(
-                "INSERT INTO posts (user_id, content, posted_timestamp) VALUES (?1, ?2, ?3)",
-                1,
-                form_input.content,
-                now
-            ).execute(&mut db_conn).await?;
+                    "UPDATE image_uploads SET post_id=? WHERE post_id IS NULL",
+                    post_id
+                ).execute(&mut db_conn)
+                .await?;
 
             let response: Response = Redirect::new("/").into();
 
@@ -430,7 +462,7 @@ pub async fn post_delete(mut req: Request<State>) -> tide::Result<Response> {
 }
 
 /// Upload an image
-pub async fn put_image_upload(mut req: Request<State>) -> tide::Result<Response> {
+pub async fn put_image_upload(req: Request<State>) -> tide::Result<Response> {
     let state = req.state();
     let session = req.session();
 
@@ -438,19 +470,54 @@ pub async fn put_image_upload(mut req: Request<State>) -> tide::Result<Response>
     let logged_in = session.get::<bool>("logged_in").unwrap_or(false);
 
     if logged_in {
-        let filename = format!("{}.jpg", rand::random::<u64>());
+        let image_id = rand::random::<u64>();
+
+        let image_resizer = super::images::GmImageConvert::new(
+            state.config.graphicsmagick_path.to_str().unwrap().to_string()
+        );
+
+        let filename_original = format!("{}", image_id);
+        let filename_full = format!("{}_full.jpg", image_id);
+        let filename_medium = format!("{}_medium.jpg", image_id);
+        let filename_thumbnail = format!("{}_thumbnail.jpg", image_id);
 
         let mut db_conn = state.sqlite_pool.acquire().await?;
 
         let file = async_std::fs::File::create(
-            std::path::Path::new("uploads").join(filename)
+            Path::new("uploads").join(&filename_original)
         ).await?;
 
         async_std::io::copy(req, file).await?;
 
+        // Generate "full" jpeg
+        image_resizer.convert_image(
+            Path::new("uploads").join(&filename_original).as_path(),
+            Path::new("uploads").join(&filename_full).as_path()
+        ).await?;
+
+        // Generate medium
+        image_resizer.thumbnail_image(
+            Path::new("uploads").join(&filename_full).as_path(),
+            Path::new("uploads").join(&filename_medium).as_path(),
+            600,
+            600
+        ).await?;
+
+        // Generate thumbnail
+        image_resizer.thumbnail_image(
+            Path::new("uploads").join(&filename_medium).as_path(),
+            Path::new("uploads").join(&filename_thumbnail).as_path(),
+            120,
+            120
+        ).await?;
+
         sqlx::query!(
-                "INSERT INTO image_uploads (image_full_path) VALUES (?)",
-                filename
+                r#"INSERT INTO image_uploads
+                    (image_thumbnail_path, image_medium_path, image_full_path)
+                    VALUES (?, ?, ?)"#,
+                filename_thumbnail,
+                filename_medium,
+                filename_full
             ).execute(&mut db_conn)
             .await?;
 

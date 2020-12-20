@@ -14,6 +14,18 @@
         <input id="createpost-button" type="submit" value="Post">
     </form>
 
+    {% if images %}
+        <h4>Draft Image Uploads</h4>
+
+        <div id="attached-image-container">
+            {% for image in images %}
+                <a href="/uploads/{{ image.full_path }}" target="_blank">
+                    <img class="image-thumbnail" src="/uploads/{{ image.thumbnail_path }}">
+                </a>
+            {% endfor %}
+        </div>
+    {% endif %}
+
     <h4>Attach Images</h4>
 
     <form action="/post/image-upload" method="POST" enctype="multipart/form-data" id="image-upload-form">

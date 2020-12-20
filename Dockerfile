@@ -20,6 +20,11 @@ RUN cargo build --release
 
 FROM ubuntu:bionic
 
+RUN apt-get update && \
+    apt-get install gm -y && \
+    apt-cache clear && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /opt
 
 COPY --from=0 /opt/target/release/microbloggy /opt/microbloggy

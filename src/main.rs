@@ -17,6 +17,7 @@ use std::str::FromStr;
 mod config;
 mod routes;
 mod tests;
+mod images;
 
 #[derive(Clone)]
 pub struct State {

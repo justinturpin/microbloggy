@@ -9,6 +9,7 @@ pub struct Config {
     pub session_secret: String,
     pub bind_host: String,
     pub uploads_path: std::path::PathBuf,
+    pub graphicsmagick_path: std::path::PathBuf,
     pub posts_per_page: u64
 }
 
@@ -33,6 +34,7 @@ impl Config {
                 Err(_) => 50
             },
             uploads_path: PathBuf::from(var("UPLOADS_PATH").unwrap()),
+            graphicsmagick_path: PathBuf::from(var("GRAPHICSMAGICK_PATH").unwrap_or("gm".to_string())),
         }
     }
 }
