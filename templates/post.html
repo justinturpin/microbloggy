@@ -21,6 +21,16 @@
 
     <div class="post-content">{{ post.content | markdown | safe }}</div>
 
+    {% if post.images %}
+        <div id="image-container">
+            {% for image in post.images %}
+                <a href="/uploads/{{ image.full_path }}" target="_blank">
+                    <img class="image-thumbnail" src="/uploads/{{ image.thumbnail_path }}">
+                </a>
+            {% endfor %}
+        </div>
+    {% endif %}
+
     {% if logged_in %}
         <div id="edit-post-toggle-button">Edit Post</div>
         <div id="delete-post-toggle-button">

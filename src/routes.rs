@@ -4,7 +4,7 @@ use tide_tera::prelude::*;
 use tide::{Request, Response, Redirect};
 use serde::{Serialize, Deserialize};
 use chrono::prelude::*;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::vec::Vec;
 
 #[derive(Deserialize)]
@@ -52,6 +52,13 @@ struct IndexQuery {
     before_timestamp: Option<String>
 }
 
+#[derive(Deserialize, Serialize)]
+pub struct Image {
+    thumbnail_path: String,
+    medium_path: String,
+    full_path: String
+}
+
 #[derive(Serialize)]
 pub struct Post {
     username: String,
@@ -59,15 +66,8 @@ pub struct Post {
     name: String,
     user_id: i64,
     content: String,
-    posted_timestamp: String
-}
-
-#[derive(Serialize)]
-pub struct Image {
-    image_id: Option<i64>,
-    thumbnail_path: String,
-    medium_path: String,
-    full_path: String
+    posted_timestamp: String,
+    images: Vec<Image>
 }
 
 pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
@@ -95,7 +95,7 @@ pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
     let result = sqlx::query!(
             r#"SELECT
                 users.username, users.name, users.rowid AS user_id,
-                posts.rowid AS post_id, posts.content, posts.posted_timestamp
+                posts.rowid AS post_id, posts.content, posts.posted_timestamp, posts.images
             FROM users, posts
             WHERE users.rowid=posts.user_id AND posts.posted_timestamp < ?1
             ORDER BY posted_timestamp desc LIMIT ?2"#,
@@ -105,10 +105,12 @@ pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
         .fetch_all(&mut db_conn)
         .await?;
 
-    // TODO: I think you can collect all of this into a Vec of some struct
     let mut posts = Vec::new();
+    let mut post_ids = Vec::new();
 
     for row in result {
+        post_ids.push(row.post_id.unwrap());
+
         posts.push(Post{
             username: row.username,
             name: row.name,
@@ -116,22 +118,19 @@ pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
             post_id: row.post_id.unwrap(),
             content: row.content,
             posted_timestamp: row.posted_timestamp,
+            images: serde_json::from_str(row.images.as_str()).unwrap()
         });
     }
 
+    // Query for draft images
     let result = sqlx::query!(
-            r#"SELECT
-                image_thumbnail_path, image_medium_path, image_full_path
-                FROM image_uploads
-                WHERE post_id IS NULL
-            "#
+            "SELECT image_thumbnail_path, image_medium_path, image_full_path FROM image_drafts"
         )
         .fetch_all(&mut db_conn)
         .await?;
 
-    let images: Vec<Image> = result.into_iter().map(|row| {
+    let draft_images: Vec<Image> = result.into_iter().map(|row| {
         Image {
-            image_id: None,
             full_path: row.image_full_path.unwrap(),
             medium_path: row.image_medium_path.unwrap(),
             thumbnail_path: row.image_thumbnail_path.unwrap()
@@ -139,7 +138,7 @@ pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
     }).collect();
 
     context.insert("posts", &posts);
-    context.insert("images", &images);
+    context.insert("draft_images", &draft_images);
     context.insert("logged_in", &logged_in);
     context.insert("csrf_token", &csrf_token);
     context.insert("view_more", &(posts.len() >= config.posts_per_page as usize));
@@ -318,7 +317,7 @@ pub async fn post_view(req: Request<State>) -> tide::Result<Response> {
 
     let row = sqlx::query!(
                 r#"SELECT users.username, users.name, users.rowid AS user_id,
-                    posts.content, posts.posted_timestamp
+                    posts.content, posts.posted_timestamp, posts.images
                 FROM users, posts
                 WHERE users.rowid=posts.user_id AND posts.rowid=?"#,
             post_id)
@@ -340,6 +339,7 @@ pub async fn post_view(req: Request<State>) -> tide::Result<Response> {
             post_id: post_id,
             content: row.content,
             posted_timestamp: row.posted_timestamp,
+            images: serde_json::from_str(row.images.as_str()).unwrap(),
         }
     );
 
@@ -369,21 +369,37 @@ pub async fn post_create(mut req: Request<State>) -> tide::Result<Response> {
         if form_input.csrf_token != csrf_token {
             Ok(Redirect::new("/").into())
         } else {
+            // Query for draft images
+            let result = sqlx::query!(
+                    "SELECT image_thumbnail_path, image_medium_path, image_full_path FROM image_drafts"
+                )
+                .fetch_all(&mut db_conn)
+                .await?;
+
+            let draft_images: Vec<Image> = result.into_iter().map(|row| {
+                Image {
+                    full_path: row.image_full_path.unwrap(),
+                    medium_path: row.image_medium_path.unwrap(),
+                    thumbnail_path: row.image_thumbnail_path.unwrap()
+                }
+            }).collect();
+
             let now = Utc::now().to_rfc3339();
 
             // TODO: hardcoded user id of 1 should be dynamic, probably
-            let post_id = sqlx::query!(
-                    "INSERT INTO posts (user_id, content, posted_timestamp) VALUES (?1, ?2, ?3)",
+            let post_images: String = serde_json::to_string(&draft_images).unwrap();
+
+            sqlx::query!(
+                    "INSERT INTO posts (user_id, content, posted_timestamp, images) VALUES (?, ?, ?, ?)",
                     1,
                     form_input.content,
-                    now
+                    now,
+                    post_images
                 ).execute(&mut db_conn)
                 .await?;
 
-            sqlx::query!(
-                    "UPDATE image_uploads SET post_id=? WHERE post_id IS NULL",
-                    post_id
-                ).execute(&mut db_conn)
+            sqlx::query!("DELETE FROM image_drafts")
+                .execute(&mut db_conn)
                 .await?;
 
             let response: Response = Redirect::new("/").into();
@@ -466,10 +482,12 @@ pub async fn put_image_upload(req: Request<State>) -> tide::Result<Response> {
     let state = req.state();
     let session = req.session();
 
-    let csrf_token = session.get::<String>("csrf_token").unwrap();
+    let _csrf_token = session.get::<String>("csrf_token").unwrap();
     let logged_in = session.get::<bool>("logged_in").unwrap_or(false);
 
     if logged_in {
+        let mut db_conn = req.state().sqlite_pool.acquire().await?;
+
         let image_id = rand::random::<u64>();
 
         let image_resizer = super::images::GmImageConvert::new(
@@ -481,38 +499,26 @@ pub async fn put_image_upload(req: Request<State>) -> tide::Result<Response> {
         let filename_medium = format!("{}_medium.jpg", image_id);
         let filename_thumbnail = format!("{}_thumbnail.jpg", image_id);
 
-        let mut db_conn = state.sqlite_pool.acquire().await?;
+        let path_original = Path::new("uploads").join(&filename_original);
+        let path_full = Path::new("uploads").join(&filename_full);
+        let path_medium = Path::new("uploads").join(&filename_medium);
+        let path_thumbnail = Path::new("uploads").join(&filename_thumbnail);
 
-        let file = async_std::fs::File::create(
-            Path::new("uploads").join(&filename_original)
-        ).await?;
+        {
+            let file = async_std::fs::File::create(
+                Path::new("uploads").join(&filename_original)
+            ).await?;
 
-        async_std::io::copy(req, file).await?;
+            async_std::io::copy(req, file).await?;
+        }
 
-        // Generate "full" jpeg
-        image_resizer.convert_image(
-            Path::new("uploads").join(&filename_original).as_path(),
-            Path::new("uploads").join(&filename_full).as_path()
-        ).await?;
-
-        // Generate medium
-        image_resizer.thumbnail_image(
-            Path::new("uploads").join(&filename_full).as_path(),
-            Path::new("uploads").join(&filename_medium).as_path(),
-            600,
-            600
-        ).await?;
-
-        // Generate thumbnail
-        image_resizer.thumbnail_image(
-            Path::new("uploads").join(&filename_medium).as_path(),
-            Path::new("uploads").join(&filename_thumbnail).as_path(),
-            120,
-            120
-        ).await?;
+        // Generate resized images
+        image_resizer.convert_image(path_original.as_path(), path_full.as_path()).await?;
+        image_resizer.thumbnail_image(path_full.as_path(), path_medium.as_path(), 600, 600).await?;
+        image_resizer.thumbnail_image(path_medium.as_path(), path_thumbnail.as_path(), 120, 120).await?;
 
         sqlx::query!(
-                r#"INSERT INTO image_uploads
+                r#"INSERT INTO image_drafts
                     (image_thumbnail_path, image_medium_path, image_full_path)
                     VALUES (?, ?, ?)"#,
                 filename_thumbnail,
@@ -520,6 +526,8 @@ pub async fn put_image_upload(req: Request<State>) -> tide::Result<Response> {
                 filename_full
             ).execute(&mut db_conn)
             .await?;
+
+        async_std::fs::remove_file(path_original.as_path()).await?;
 
         Ok(
             tide::Response::builder(200)

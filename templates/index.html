@@ -14,11 +14,11 @@
         <input id="createpost-button" type="submit" value="Post">
     </form>
 
-    {% if images %}
+    {% if draft_images %}
         <h4>Draft Image Uploads</h4>
 
         <div id="attached-image-container">
-            {% for image in images %}
+            {% for image in draft_images %}
                 <a href="/uploads/{{ image.full_path }}" target="_blank">
                     <img class="image-thumbnail" src="/uploads/{{ image.thumbnail_path }}">
                 </a>
@@ -28,7 +28,7 @@
 
     <h4>Attach Images</h4>
 
-    <form action="/post/image-upload" method="POST" enctype="multipart/form-data" id="image-upload-form">
+    <form action="/post/image-upload" id="image-upload-form">
         <input type="file" name="image" accept="image/*" id="image-upload-input">
         <input type="submit" value="Upload Image" id="image-upload-submit">
     </form>
@@ -61,6 +61,16 @@
         </h4>
 
         <div class="post-content">{{ post.content | markdown | safe }}</div>
+
+        {% if post.images %}
+            <div id="image-container">
+                {% for image in post.images %}
+                    <a href="/uploads/{{ image.full_path }}" target="_blank">
+                        <img class="image-thumbnail" src="/uploads/{{ image.thumbnail_path }}">
+                    </a>
+                {% endfor %}
+            </div>
+        {% endif %}
     </div>
 
     {% if loop.last and view_more %}

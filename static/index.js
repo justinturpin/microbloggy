@@ -15,7 +15,9 @@ imageUploadForm.onsubmit = (e) => {
 
         // Reload page when the file is done uploading
         xhr.onreadystatechange = () => {
-            location.reload();
+            if (xhr.readyState == 4) {
+                location.reload();
+            }
         }
 
         xhr.open("PUT", "/post/image-upload");

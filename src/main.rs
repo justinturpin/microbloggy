@@ -1,10 +1,6 @@
 use rand::Rng;
-// use async_std::task::{spawn, sleep};
-use std::pin::Pin;
-use std::future::Future;
 
-use tide::{Request, Middleware, Next, Result};
-use tide::http::StatusCode;
+use tide::Request;
 use tera::Tera;
 
 use sqlx::{Sqlite, SqlitePool};
