@@ -17,8 +17,10 @@ build-docker:
 	docker build -f Dockerfile.builder -t microbloggy-builder .
 	docker run -v ${PWD}:/opt \
 		-v microbloggy-builder-cargo:/cargo \
-		-e CARGO_HOME=/cargo microbloggy-builder \
-			cargo build --release
+		-e CARGO_HOME=/cargo \
+		-e DATABASE_URL=sqlite:migration.sqlite \
+		microbloggy-builder \
+			/bin/bash -c "sqlx database create && sqlx migrate run && cargo build --release"
 	docker build -t microbloggy .
 
 run-docker: build-docker
