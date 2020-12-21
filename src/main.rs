@@ -107,7 +107,7 @@ fn register_routes(app: &mut tide::Server<State>, config: &config::Config) {
 
 async fn bootstrap_database(config: &config::Config) -> tide::Result<SqlitePool> {
     let options = SqliteConnectOptions::from_str(config.database_url.as_str())?
-        .journal_mode(SqliteJournalMode::Off)
+        .journal_mode(SqliteJournalMode::Delete)
         .create_if_missing(true);
 
     let sqlite_pool = SqlitePool::connect_with(options).await?;
