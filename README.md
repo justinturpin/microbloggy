@@ -11,6 +11,7 @@ export ADMIN_USERNAME=testuser
 export ADMIN_PASSWORD=testpassword
 export SESSION_SECRET=session-secret-atleast-32-chars
 export DATABASE_URL=sqlite:path-to-db-used-for-migration.sqlite
+export UPLOADS_PATH=uploads
 
 # Ensure testing sqlite database exists
 $ cargo install sqlx-cli  --no-default-features --features sqlite
