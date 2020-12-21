@@ -1,4 +1,4 @@
-.PHONY: dev run test build-docker run-docker cleanup-docker
+.PHONY: dev run test build-docker run-docker stop-docker cleanup-docker
 
 dev:
 	cargo install sqlx-cli  --no-default-features --features sqlite
@@ -24,6 +24,7 @@ build-docker:
 run-docker: build-docker
 	docker run \
 		--rm \
+		--detach \
 		--name microbloggy \
 		-p 8080:8080 \
 		-v microbloggy-data:/data \
@@ -35,6 +36,9 @@ run-docker: build-docker
 		-e UPLOADS_PATH=/uploads \
 		microbloggy
 
-cleanup-docker:
+stop-docker:
+	docker stop microbloggy
+
+cleanup-docker: stop-docker
 	docker volume rm microbloggy-data
 	docker volume rm microbloggy-uploads
