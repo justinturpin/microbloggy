@@ -6,7 +6,7 @@ RUN apt-get update && \
 
 WORKDIR /opt
 
-COPY target/release/microbloggy /opt/microbloggy
+COPY release/microbloggy /opt/microbloggy
 COPY migrations /opt/migrations
 COPY templates /opt/templates
 COPY static /opt/static

@@ -14,13 +14,14 @@ test:
 	cargo test
 
 build-docker:
+	mkdir -p release
 	docker build -f Dockerfile.builder -t microbloggy-builder .
 	docker run -v ${PWD}:/opt \
 		-v microbloggy-builder-cargo:/cargo \
 		-e CARGO_HOME=/cargo \
 		-e DATABASE_URL=sqlite:migration.sqlite \
 		microbloggy-builder \
-			/bin/bash -c "sqlx database create && sqlx migrate run && cargo build --release"
+			/bin/bash -c "sqlx database create && sqlx migrate run && cargo build --release && cp target/release/microbloggy release/microbloggy"
 	docker build -t microbloggy .
 
 run-docker: build-docker
