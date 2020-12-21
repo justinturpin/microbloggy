@@ -21,8 +21,7 @@ RUN cargo build --release
 FROM ubuntu:bionic
 
 RUN apt-get update && \
-    apt-get install gm -y && \
-    apt-cache clear && \
+    apt-get install graphicsmagick -y && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /opt
