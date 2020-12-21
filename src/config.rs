@@ -8,9 +8,10 @@ pub struct Config {
     pub admin_password: String,
     pub session_secret: String,
     pub bind_host: String,
-    pub uploads_path: std::path::PathBuf,
-    pub graphicsmagick_path: std::path::PathBuf,
-    pub posts_per_page: u64
+    pub uploads_path: PathBuf,
+    pub graphicsmagick_path: PathBuf,
+    pub posts_per_page: u64,
+    pub restore_path: Option<PathBuf>
 }
 
 impl Config {
@@ -35,6 +36,10 @@ impl Config {
             },
             uploads_path: PathBuf::from(var("UPLOADS_PATH").unwrap()),
             graphicsmagick_path: PathBuf::from(var("GRAPHICSMAGICK_PATH").unwrap_or("gm".to_string())),
+            restore_path: match var("RESTORE_PATH") {
+                Ok(value) => Some(PathBuf::from(value)),
+                Err(_) => None
+            }
         }
     }
 }

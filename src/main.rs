@@ -6,6 +6,7 @@ use tera::Tera;
 use sqlx::{Sqlite, SqlitePool};
 use sqlx::pool::PoolConnection;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode};
+use sqlx::Executor;
 
 use serde_json::Value;
 use std::str::FromStr;
@@ -138,6 +139,15 @@ async fn bootstrap_database(config: &config::Config) -> tide::Result<SqlitePool>
         },
         _ => {}
     };
+
+    if let Some(path) = &config.restore_path {
+        let restore_contents = std::fs::read_to_string(path).unwrap();
+
+        match connection.execute(restore_contents.as_str()).await {
+            Ok(_) => println!("Successfully restored data"),
+            Err(e) => eprintln!("Failed to restore data: {}", e)
+        }
+    }
 
     Ok(sqlite_pool)
 }
