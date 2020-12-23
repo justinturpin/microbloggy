@@ -1,7 +1,7 @@
 use std::env::var;
 use std::path::PathBuf;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Config {
     pub database_url: String,
     pub admin_username: String,

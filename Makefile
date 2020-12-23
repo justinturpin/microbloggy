@@ -1,5 +1,7 @@
 .PHONY: dev run test build-docker run-docker stop-docker cleanup-docker
 
+include *.mk
+
 dev:
 	cargo install sqlx-cli  --no-default-features --features sqlite
 	sqlx database create

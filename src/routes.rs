@@ -482,6 +482,7 @@ pub async fn put_image_upload(req: Request<State>) -> tide::Result<Response> {
     let state = req.state();
     let session = req.session();
 
+    let uploads_path = &state.config.uploads_path;
     let _csrf_token = session.get::<String>("csrf_token").unwrap();
     let logged_in = session.get::<bool>("logged_in").unwrap_or(false);
 
@@ -499,14 +500,14 @@ pub async fn put_image_upload(req: Request<State>) -> tide::Result<Response> {
         let filename_medium = format!("{}_medium.jpg", image_id);
         let filename_thumbnail = format!("{}_thumbnail.jpg", image_id);
 
-        let path_original = Path::new("uploads").join(&filename_original);
-        let path_full = Path::new("uploads").join(&filename_full);
-        let path_medium = Path::new("uploads").join(&filename_medium);
-        let path_thumbnail = Path::new("uploads").join(&filename_thumbnail);
+        let path_original = uploads_path.join(&filename_original);
+        let path_full = uploads_path.join(&filename_full);
+        let path_medium = uploads_path.join(&filename_medium);
+        let path_thumbnail = uploads_path.join(&filename_thumbnail);
 
         {
             let file = async_std::fs::File::create(
-                Path::new("uploads").join(&filename_original)
+                uploads_path.join(&filename_original)
             ).await?;
 
             async_std::io::copy(req, file).await?;
