@@ -267,6 +267,10 @@ Profile Stuff
 Posts Stuff
 */
 
+.post-heading {
+    color: inherit;
+}
+
 .post {
     background: white;
     padding: 8px 8px 8px 16px;

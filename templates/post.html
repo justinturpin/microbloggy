@@ -43,7 +43,14 @@
     <div id="post-edit-container">
         <form action="/post/edit/{{ post.post_id }}" method="POST">
             <input type="hidden" name="csrf-token" value="{{ csrf_token }}">
+
             <textarea name="content">{{ post.content }}</textarea>
+
+            <label for="edit-post-short-url">
+                Short URL for easy sharing:
+            </label>
+
+            <input type="text" name="short-url" id="edit-post-short-url" placeholder="Short URL" value="{{ post.short_url }}">
 
             <input type="submit" id="edit-post-button" value="Edit Post">
         </form>

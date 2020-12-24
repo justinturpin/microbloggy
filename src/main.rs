@@ -94,6 +94,7 @@ fn register_routes(app: &mut tide::Server<State>, config: &config::Config) {
 
     app.at("/post/create").post(routes::post_create);
     app.at("/post/view/:post_id").get(routes::post_view);
+    app.at("/post/share/:short_url").get(routes::post_view_share);
     app.at("/post/edit/:post_id").post(routes::post_edit);
     app.at("/post/delete/:post_id").post(routes::post_delete);
     app.at("/post/image-upload").put(routes::put_image_upload);

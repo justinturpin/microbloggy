@@ -4,7 +4,6 @@ use tide_tera::prelude::*;
 use tide::{Request, Response, Redirect};
 use serde::{Serialize, Deserialize};
 use chrono::prelude::*;
-use std::path::Path;
 use std::vec::Vec;
 
 #[derive(Deserialize)]
@@ -27,6 +26,9 @@ pub struct PostFormInput {
 #[derive(Deserialize)]
 pub struct PostEditFormInput {
     content: String,
+
+    #[serde(rename = "short-url")]
+    short_url: String,
 
     #[serde(rename = "csrf-token")]
     csrf_token: String,
@@ -67,6 +69,7 @@ pub struct Post {
     user_id: i64,
     content: String,
     posted_timestamp: String,
+    short_url: Option<String>,
     images: Vec<Image>
 }
 
@@ -95,7 +98,7 @@ pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
     let result = sqlx::query!(
             r#"SELECT
                 users.username, users.name, users.rowid AS user_id,
-                posts.rowid AS post_id, posts.content, posts.posted_timestamp, posts.images
+                posts.rowid AS post_id, posts.content, posts.posted_timestamp, posts.images, short_url
             FROM users, posts
             WHERE users.rowid=posts.user_id AND posts.posted_timestamp < ?1
             ORDER BY posted_timestamp desc LIMIT ?2"#,
@@ -118,6 +121,7 @@ pub async fn index(req: Request<State>) -> tide::Result<tide::Response> {
             post_id: row.post_id.unwrap(),
             content: row.content,
             posted_timestamp: row.posted_timestamp,
+            short_url: row.short_url,
             images: serde_json::from_str(row.images.as_str()).unwrap()
         });
     }
@@ -317,7 +321,7 @@ pub async fn post_view(req: Request<State>) -> tide::Result<Response> {
 
     let row = sqlx::query!(
                 r#"SELECT users.username, users.name, users.rowid AS user_id,
-                    posts.content, posts.posted_timestamp, posts.images
+                    posts.content, posts.posted_timestamp, posts.images, posts.short_url
                 FROM users, posts
                 WHERE users.rowid=posts.user_id AND posts.rowid=?"#,
             post_id)
@@ -339,6 +343,7 @@ pub async fn post_view(req: Request<State>) -> tide::Result<Response> {
             post_id: post_id,
             content: row.content,
             posted_timestamp: row.posted_timestamp,
+            short_url: row.short_url,
             images: serde_json::from_str(row.images.as_str()).unwrap(),
         }
     );
@@ -349,6 +354,56 @@ pub async fn post_view(req: Request<State>) -> tide::Result<Response> {
 
     tera.render_response("post.html", &context)
 }
+
+/// View a post by its short URL
+pub async fn post_view_share(req: Request<State>) -> tide::Result<Response> {
+    let state = req.state();
+    let session = req.session();
+    let tera = &state.tera;
+    let messages: Option<&MessageFlashes> = req.ext();
+
+    let csrf_token = session.get::<String>("csrf_token").unwrap();
+    let logged_in = session.get::<bool>("logged_in").unwrap_or(false);
+
+    let mut db_conn = state.sqlite_pool.acquire().await?;
+    let short_url: String = req.param("short_url").unwrap().to_string();
+
+    let row = sqlx::query!(
+                r#"SELECT users.username, users.name, users.rowid AS user_id,
+                    posts.content, posts.rowid as post_id, posts.posted_timestamp, posts.images, posts.short_url
+                FROM users, posts
+                WHERE users.rowid=posts.user_id AND posts.short_url=?"#,
+            short_url)
+        .fetch_one(&mut db_conn)
+        .await?;
+
+    // TODO: this will just panic if the post doesn't exist instead of 404ing
+
+    let mut context = tera::Context::new();
+
+    context.insert("csrf_token", &csrf_token);
+    context.insert("logged_in", &logged_in);
+    context.insert(
+        "post",
+        &Post{
+            username: row.username,
+            name: row.name,
+            user_id: row.user_id.unwrap(),
+            post_id: row.post_id.unwrap(),
+            content: row.content,
+            posted_timestamp: row.posted_timestamp,
+            short_url: row.short_url,
+            images: serde_json::from_str(row.images.as_str()).unwrap(),
+        }
+    );
+
+    if let Some(m) = messages {
+        context.insert("messages", &m.messages);
+    }
+
+    tera.render_response("post.html", &context)
+}
+
 
 /// Handle post creation
 pub async fn post_create(mut req: Request<State>) -> tide::Result<Response> {
@@ -428,9 +483,16 @@ pub async fn post_edit(mut req: Request<State>) -> tide::Result<Response> {
         if form_input.csrf_token != csrf_token {
             Ok(tide::Response::builder(400).body("Invalid CSRF").build())
         } else {
+            // TODO: form validation because URL's can only be so much
+            let short_url = match form_input.short_url.is_empty() {
+                true => None,
+                false => Some(form_input.short_url)
+            };
+
             sqlx::query!(
-                    "UPDATE posts SET content=? WHERE rowid=?",
+                    "UPDATE posts SET content=?, short_url=? WHERE rowid=?",
                     form_input.content,
+                    short_url,
                     post_id
                 )
                 .execute(&mut db_conn)
