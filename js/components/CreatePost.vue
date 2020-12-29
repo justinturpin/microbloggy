@@ -26,12 +26,16 @@
 </template>
 
 <script>
+
+import messages from "../messages";
+
 export default {
   data() {
     return {
       draft_images: [],
       items: [{ message: 'Foo' }, { message: 'Bar' }],
-      draft_file: null
+      draft_file: null,
+      messages: messages
     }
   },
 
@@ -53,7 +57,9 @@ export default {
     },
 
     draftUploadChanged(event) {
-      this.draft_file = event.target.files.item(0)
+      this.draft_file = event.target.files.item(0);
+
+      this.messages.good.push("Image ready to be uploaded!");
     },
 
     uploadDraftImage() {

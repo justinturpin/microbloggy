@@ -27,5 +27,8 @@
     "rollup-plugin-terser": "^7.0.2",
     "rollup-plugin-vue": "^6.0.0",
     "vue": "^3.0.4"
+  },
+  "dependencies": {
+    "vuex": "^4.0.0-rc.2"
   }
 }

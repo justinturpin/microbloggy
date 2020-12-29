@@ -17,9 +17,7 @@
     <body>
         <div id="vertical-wrapper">
             <div id="content-wrapper">
-                {% if messages %}
-                    <div id="error-messages">{{ messages }}</div>
-                {% endif %}
+                <div id="messages-app"></div>
 
                 {% block content %}{% endblock %}
             </div>
@@ -28,5 +26,7 @@
                 Microbloggy Alpha Version
             </footer>
         </div>
+
+        <script type="module" src="/static/bundle.js"></script>
     </body>
 </html>

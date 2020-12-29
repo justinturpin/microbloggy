@@ -92,13 +92,19 @@ input[type=text], textarea {
 }
 
 /*
-Error message stuff
+Message stuff
 */
 
 #error-messages {
     color: rgb(71, 0, 0);
     background: rgb(255, 209, 209);
     padding: 12px
+}
+
+#good-messages {
+    background: #d5ffd5;
+    color: 214421;
+    padding: 12px;
 }
 
 /*
