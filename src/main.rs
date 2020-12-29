@@ -13,6 +13,7 @@ use std::str::FromStr;
 
 mod config;
 mod routes;
+mod routes_api;
 mod tests;
 mod images;
 
@@ -76,7 +77,7 @@ fn register_middleware(app: &mut tide::Server<State>, config: &config::Config) {
     app.with(tide::utils::After(|mut res: tide::Response| async move {
         res.append_header("X-Frame-Options", "DENY");
         res.append_header("X-Content-Type-Options", "nosniff");
-        res.append_header("Content-Security-Policy", "default-src 'self'");
+        // res.append_header("Content-Security-Policy", "default-src 'self'");
 
         Ok(res)
     }));
@@ -99,11 +100,12 @@ fn register_routes(app: &mut tide::Server<State>, config: &config::Config) {
     app.at("/post/delete/:post_id").post(routes::post_delete);
     app.at("/post/image-upload").put(routes::put_image_upload);
 
+    app.at("/api/index").get(routes_api::index_api);
+
     // Static Files (fonts, favicon, css)
     app.at("/static").serve_dir("static").unwrap();
 
     // User-uploaded images
-    // TODO: this should be configurable
     app.at("/uploads").serve_dir(config.uploads_path.as_path()).unwrap();
 }
 

@@ -7,32 +7,7 @@
     What's on your mind?
 </h2>
 
-<div id="createpost-container">
-    <form action="/post/create" method="POST">
-        <input type="hidden" name="csrf-token" value="{{ csrf_token }}">
-        <textarea name="content" placeholder="What's happening?"></textarea>
-        <input id="createpost-button" type="submit" value="Post">
-    </form>
-
-    {% if draft_images %}
-        <h4>Draft Image Uploads</h4>
-
-        <div id="attached-image-container">
-            {% for image in draft_images %}
-                <a href="/uploads/{{ image.full_path }}" target="_blank">
-                    <img class="image-thumbnail" src="/uploads/{{ image.thumbnail_path }}">
-                </a>
-            {% endfor %}
-        </div>
-    {% endif %}
-
-    <h4>Attach Images</h4>
-
-    <form action="/post/image-upload" id="image-upload-form">
-        <input type="file" name="image" accept="image/*" id="image-upload-input">
-        <input type="submit" value="Upload Image" id="image-upload-submit">
-    </form>
-</div>
+<div id="createpost-container"></div>
 {% endif %}
 
 <h2 id="latest-post-heading">
@@ -84,6 +59,7 @@
     </div>
 {% endfor %}
 
-<script src="/static/index.js"></script>
+{# <script src="/static/index.js"></script> #}
+<script type="module" src="/static/bundle.js"></script>
 
 {% endblock %}

@@ -44,17 +44,19 @@ Building:
 Internals
 - [ ] Middleware for authentication verification instead of boilerplate session checks
 - [ ] Middlware for CSRF validation
+- [ ] Use VueJS and Rollup
 
 Features:
 
 - [x] Customize User Profile
-- [ ] Actual error message when the login credentials are wrong
+- [x] Actual error message when the login credentials are wrong
 - [x] Allow editing and deleting posts
-- [ ] Allow setting a short friend URL for posts for sharing reasons
+- [x] Allow setting a short friend URL for posts for sharing reasons
 - [ ] Make some colors customizable
-- [ ] Allow uploading and resizing photos
+- [x] Allow uploading and resizing photos
 - [ ] Support multiple users
 - [x] Show multiple pages of posts
 - [x] Show local times and dates based on users browser (render UTC in HTML)
 - [x] Scale textareas based on size
   - This is _kind of_ implemented but isn't very dynamic and is a bit hardcoded
+- [ ] Post Drafts (automatically create drafts and load them on page load)
