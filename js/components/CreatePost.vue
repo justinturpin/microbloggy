@@ -48,7 +48,6 @@ export default {
       fetch("/api/index")
         .then( response => response.json() )
         .then( data => {
-          console.log(data);
           this.draft_images = data.draft_images
         })
         .catch((error) => {
