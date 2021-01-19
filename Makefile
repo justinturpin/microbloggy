@@ -1,4 +1,4 @@
-.PHONY: dev run test build-docker run-docker stop-docker cleanup-docker
+.PHONY: dev run test build-docker run-docker stop-docker cleanup-docker frontend
 
 include *.mk
 
@@ -8,6 +8,9 @@ dev:
 	sqlx migrate run
 	cargo build
 	mkdir -p uploads
+
+frontend:
+	rollup -c rollup.config.js -w
 
 run: dev
 	cargo run

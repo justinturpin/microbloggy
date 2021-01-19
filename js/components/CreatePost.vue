@@ -1,6 +1,6 @@
 <template>
   <form action="/post/create" method="POST">
-    <input type="hidden" name="csrf-token" value="{{ csrf_token }}">
+    <input type="hidden" name="csrf-token" v-bind:value="csrf_token">
     <textarea name="content" placeholder="What's happening?"></textarea>
     <input id="createpost-button" type="submit" value="Post">
   </form>
@@ -32,6 +32,7 @@ import messages from "../messages";
 export default {
   data() {
     return {
+      csrf_token: null,
       draft_images: [],
       items: [{ message: 'Foo' }, { message: 'Bar' }],
       draft_file: null,
@@ -40,6 +41,8 @@ export default {
   },
 
   created() {
+    // Look up CSRF token from HTML element
+    this.csrf_token = document.getElementById("csrf-token-container").dataset.csrfToken;
     this.refreshDrafts()
   },
 
