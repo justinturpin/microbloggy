@@ -50,6 +50,7 @@ pub async fn index_api(req: Request<State>) -> Result<Response> {
         )
     } else {
         Ok(
+        // TODO: get the proper 400 response
         //     Response::builder(400)
         //         .body(json!({
         //             "unauthorized": true
